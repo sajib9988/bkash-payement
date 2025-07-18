@@ -5,7 +5,7 @@ import { getCurrentUser } from '@/service/AuthService';
 
 
 const authRoutes = ['/login', '/register'];
-const protectedRoutes = ['/cart', '/admin', '/user'];
+const protectedRoutes = ['/cart', '/admin', '/user', ];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
