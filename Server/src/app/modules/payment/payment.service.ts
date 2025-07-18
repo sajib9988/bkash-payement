@@ -7,7 +7,8 @@ import { BkashCallbackPayload, BkashPaymentResponse } from '../../type';
 
 export const createBkashPayment = async (
   amount: string,
-  userId: string
+  userId: string,
+  productId: string
 ): Promise<BkashPaymentResponse> => {
   const invoice = `INV-${uuidv4()}`;
 
@@ -17,6 +18,7 @@ export const createBkashPayment = async (
       amount: parseFloat(amount),
       status: PaymentStatus.PENDING,
       userId,
+      productId,
     },
   });
 

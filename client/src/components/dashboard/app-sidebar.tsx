@@ -29,7 +29,7 @@ const adminData = {
   navMain: [
     { title: "Dashboard", url: "/admin/dashboard", icon: SquareTerminal },
     { title: "User Management", url: "/admin/users", icon: Users },
-    { title: "Movies & Series", url: "/admin/media", icon: Clapperboard },
+    { title: "Movies & Series", url: "/admin/product", icon: Clapperboard },
     { title: "Movies-table", url: "/admin/media-table", icon: Clapperboard },
     { title: "Reviews", url: "/admin/reviews", icon: Star },
     { title: "Orders", url: "/admin/orders", icon: FileText },

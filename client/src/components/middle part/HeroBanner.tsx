@@ -6,29 +6,29 @@ import Link from "next/link";
 import { Play, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Media, MediaResponse } from "@/type/type";
-import { getAllMedia } from "@/service/media";
+
 import image from "@/assets/dark knight.jpg";
 
 const HeroBanner = () => {
   const [media, setMedia] = useState<Media | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchMedia = async () => {
-      try {
-        const response: MediaResponse = await getAllMedia();
-        // console.log(response)
-        if (response.data.data.length > 0) {
-          setMedia(response.data.data[0]);
-        }
-      } catch (error) {
-        console.error("Error fetching media:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMedia();
-  }, []);
+  // useEffect(() => {
+  //   const fetchMedia = async () => {
+  //     try {
+  //       const response: MediaResponse = await getAllMedia();
+  //       // console.log(response)
+  //       if (response.data.data.length > 0) {
+  //         setMedia(response.data.data[0]);
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching media:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   fetchMedia();
+  // }, []);
 
 
 

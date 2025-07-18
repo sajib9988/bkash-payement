@@ -130,7 +130,7 @@ const Navbar = () => {
           ) : (
             <>
               {user.role === 'ADMIN' && (
-                <Link href="/admin/media">
+                <Link href="/admin/product">
                   <Button className="bg-primary text-white hover:bg-primary/80">
                     Dashboard
                   </Button>
