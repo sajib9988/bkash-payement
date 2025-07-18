@@ -3,8 +3,11 @@ import httpStatus from "http-status";
 import { jwtHelpers } from "../helper/jwt.helper";
 import config from "../config";
 import ApiError from "../errors/apiError";
+import { role } from "../modules/auth/auth.interface";
 
-const auth = (...roles: string[]) => {
+
+
+const auth = (...roles:  role[]) => {
     return async (req: Request & { user?: any }, res: Response, next: NextFunction) => {
         try {
             const token = req.headers.authorization

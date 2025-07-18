@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { IProduct, ICartItem } from '@/type/type';
+import { toast } from 'sonner';
 
 interface CartContextType {
   cart: ICartItem[];
@@ -30,20 +31,25 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cart]);
 
-  const addToCart = (product: IProduct, quantity: number) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.product.id === product.id);
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.product.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      } else {
-        return [...prevCart, { product, quantity }];
-      }
-    });
-  };
+const addToCart = (product: IProduct) => {
+  const existingItem = cart.find(item => item.product.id === product.id);
+
+  if (existingItem) {
+    // Product already in cart, show a toast or ignore
+    console.log("Product already in cart, skipping add");
+    toast.info("এই প্রোডাক্ট ইতিমধ্যে কার্টে আছে।");
+    return; // ❌ Do not add again
+  }
+
+  // ✅ Add new product to cart
+  const newCartItem = { product, quantity: 1 };
+  const updatedCart = [...cart, newCartItem];
+  setCart(updatedCart);
+  localStorage.setItem("cart", JSON.stringify(updatedCart));
+  toast.success("কার্টে যুক্ত করা হয়েছে!");
+};
+
+
 
   const removeFromCart = (productId: string) => {
     setCart((prevCart) => prevCart.filter((item) => item.product.id !== productId));

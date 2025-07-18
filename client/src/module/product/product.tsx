@@ -39,55 +39,6 @@ const Product: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Sample data based on your structure
-  // const sampleProducts: Product[] = [
-  //   {
-  //     id: "65b52b5f-79f5-4573-a37f-1aa5bba231d2",
-  //     title: "t shiii",
-  //     description: "ddddddddddddddddd",
-  //     price: 19,
-  //     image: [
-  //       {
-  //         url: "https://res.cloudinary.com/dyqm6ffjt/image/upload/v1752690731/cumgtl0xpdgkaechrtrs.jpg",
-  //         public_id: "cumgtl0xpdgkaechrtrs"
-  //       },
-  //       {
-  //         url: "https://res.cloudinary.com/dyqm6ffjt/image/upload/v1752690731/ckhii7dymh4dapzqf69z.jpg",
-  //         public_id: "ckhii7dymh4dapzqf69z"
-  //       }
-  //     ],
-  //     createdAt: "2025-07-16T18:32:12.283Z",
-  //     updatedAt: "2025-07-16T18:32:12.283Z"
-  //   },
-  //   {
-  //     id: "65b52b5f-79f5-4573-a37f-1aa5bba231d3",
-  //     title: "Premium Cotton T-Shirt",
-  //     description: "High-quality cotton t-shirt with comfortable fit and stylish design",
-  //     price: 29,
-  //     image: [
-  //       {
-  //         url: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&h=500&fit=crop",
-  //         public_id: "sample1"
-  //       }
-  //     ],
-  //     createdAt: "2025-07-15T18:32:12.283Z",
-  //     updatedAt: "2025-07-15T18:32:12.283Z"
-  //   },
-  //   {
-  //     id: "65b52b5f-79f5-4573-a37f-1aa5bba231d4",
-  //     title: "Casual Denim Jacket",
-  //     description: "Stylish denim jacket perfect for casual outings and everyday wear",
-  //     price: 59,
-  //     image: [
-  //       {
-  //         url: "https://images.unsplash.com/photo-1544022613-e87ca75a784a?w=500&h=500&fit=crop",
-  //         public_id: "sample2"
-  //       }
-  //     ],
-  //     createdAt: "2025-07-14T18:32:12.283Z",
-  //     updatedAt: "2025-07-14T18:32:12.283Z"
-  //   }
-  // ];
 
   useEffect(() => {
     const fetchProducts = async () => {

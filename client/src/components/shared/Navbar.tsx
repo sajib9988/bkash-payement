@@ -22,7 +22,9 @@ const navLinks = [
 const Navbar = () => {
 const { user, setUser } = useUser();
 const { cart } = useCart(); // ✅ useCart থেকে cart নিয়ে আসো
-const cartCount = cart.reduce((total, item) => total + item.quantity, 0); // ✅ quantity যোগ করে count বানাও
+const cartCount = cart.length; // ✅ কার্টে কয়টা ভিন্ন প্রোডাক্ট আছে
+ // ❌ এটা কোয়ান্টিটির যোগফল
+ // ✅ quantity যোগ করে count বানাও
 
   const pathname = usePathname();
   const router = useRouter();
@@ -121,7 +123,7 @@ useEffect(() => {
               onClick={() => setIsSearchOpen(true)}
             />
           )}
-   <Link href="/cart" className="relative">
+<Link href="/cart" className="relative">
   <ShoppingCart className="h-5 w-5 text-white hover:text-primary transition-colors cursor-pointer" />
   {isMounted && cartCount > 0 && (
     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
