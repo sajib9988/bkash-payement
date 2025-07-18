@@ -17,19 +17,27 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
-  const [cart, setCart] = useState<ICartItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      const savedCart = localStorage.getItem('cart');
-      return savedCart ? JSON.parse(savedCart) : [];
-    }
-    return [];
-  });
+  const [cart, setCart] = useState<ICartItem[]>([]);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      const savedCart = localStorage.getItem('cart');
+      if (savedCart) {
+        setCart(JSON.parse(savedCart));
+      }
+    }
+  }, [isClient]);
+
+  useEffect(() => {
+    if (isClient) {
       localStorage.setItem('cart', JSON.stringify(cart));
     }
-  }, [cart]);
+  }, [cart, isClient]);
 
 const addToCart = (product: IProduct) => {
   const existingItem = cart.find(item => item.product.id === product.id);

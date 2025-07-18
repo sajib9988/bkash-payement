@@ -13,7 +13,7 @@ export const createPayment = async (data: Record<string, any>) => {
 
   try {
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BASE_API}/payment/init-payment/${data.contentId}`,
+      `${process.env.NEXT_PUBLIC_BASE_API}/payment/init-payment`,
       {
         method: "POST",
         headers: {
@@ -23,7 +23,7 @@ export const createPayment = async (data: Record<string, any>) => {
         body: JSON.stringify(data),
       }
     );
-console.log("API payment URL:", `${process.env.NEXT_PUBLIC_BASE_API}/payment/init-payment/${data.contentId}`);
+console.log("API payment URL:", `${process.env.NEXT_PUBLIC_BASE_API}/payment/init-payment`);
 
     if (!res.ok) {
       const error = await res.json();

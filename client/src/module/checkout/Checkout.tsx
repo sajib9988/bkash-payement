@@ -29,24 +29,29 @@ const Checkout = () => {
   });
 
   const onSubmit = async (data: CheckoutFormValues) => {
-    const checkoutData = {
-      ...data,
-      items: cart.map((item) => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-      })),
-      total: getCartTotal(),
-    };
-
-    try {
-      const response = await createPayment(checkoutData);
-      toast.success("Payment initiated successfully!");
-      clearCart();
-      router.push(response.data);
-    } catch (error) {
-      toast.error("Failed to initiate payment.");
-    }
+  const checkoutData = {
+    ...data,
+    items: cart.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    })),
+    total: getCartTotal(),
   };
+
+  try {
+    const response = await createPayment(checkoutData);
+
+    if (response?.bkashURL) {
+      toast.success("Redirecting to bKash...");
+      clearCart();
+      window.location.href = response.bkashURL; // ✅ bKash page-এ redirect করবে
+    } else {
+      toast.error("Failed to initiate payment: No bKash URL received.");
+    }
+  } catch (error) {
+    toast.error("Failed to initiate payment.");
+  }
+};
 
   return (
     <div className="container mx-auto px-4 py-8">
