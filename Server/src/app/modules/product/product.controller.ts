@@ -21,7 +21,7 @@ export const addItem = catchAsync(async (req: Request, res: Response) => {
 
 export const getAllProducts = catchAsync(async (req: Request, res: Response) => {
   const result = await productService.getAllProductsFromDB();
-console.log('dd', result)
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
