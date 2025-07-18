@@ -1,6 +1,7 @@
 "use server";
 
-import { FieldValues } from "react-hook-form"
+import { IUser } from "@/type/type";
+import { FieldValues } from "react-hook-form";
 import { cookies } from "next/headers";
 import { jwtDecode } from "jwt-decode";
 
@@ -52,17 +53,19 @@ export const loginUser = async (userData: FieldValues) => {
 
 
 
-  export const getCurrentUser = async () => {
+  export const getCurrentUser = async (): Promise<IUser | null> => {
     const accessToken = (await cookies()).get("accessToken")?.value;
 
-     console.log("Retrieved accessToken:", accessToken ? "Token exists" : "No token found");
-    
-    let decodedData = null;
-  
-    if (accessToken) {
-      decodedData = await jwtDecode(accessToken);
+    if (!accessToken) {
+      return null;
+    }
+
+    try {
+      const decodedData: IUser = jwtDecode(accessToken);
       return decodedData;
-    } else {
+    } catch (error) {
+      // If the token is invalid or expired, delete it and return null
+      (await cookies()).delete("accessToken");
       return null;
     }
   };

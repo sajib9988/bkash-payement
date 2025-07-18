@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Star, Eye } from 'lucide-react';
+import { useCart } from '@/context/CartContext';
 
 interface ProductImage {
   url: string;
@@ -23,6 +24,7 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+const {cart,addToCart}= useCart()
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -140,7 +142,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
 
         {/* Action Buttons */}
         <div className="flex space-x-2">
-          <button className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
+          <button onClick={() => addToCart(product, 1)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
+    
             <ShoppingCart className="w-4 h-4" />
             <span>Add to Cart</span>
           </button>
@@ -149,14 +152,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           </button>
         </div>
 
-        {/* Product Info */}
-        <div className="mt-3 text-xs text-gray-500">
-          <p>Added: {formatDate(product.createdAt)}</p>
-          {product.updatedAt !== product.createdAt && (
-            <p>Updated: {formatDate(product.updatedAt)}</p>
-          )}
-          <p>ID: {product.id.slice(0, 8)}...</p>
-        </div>
+      
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+"use client";
 import React, { useState, useEffect } from 'react';
 import ProductCard from './ProductCard';
 
@@ -29,8 +30,8 @@ const getALLProduct = async (): Promise<Product[]> => {
     throw new Error(`Failed to fetch products: ${res.status} - ${errorText}`);
   }
   
-  const products = await res.json();
-  return products;
+  const result = await res.json();
+  return result.data;
 };
 
 const Product: React.FC = () => {

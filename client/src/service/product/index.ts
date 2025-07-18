@@ -29,12 +29,15 @@ export const getALLProduct = async () => {
    
 
   });
-console.log('res jkjj', res)
+
   if (!res.ok) {
     const errorText = await res.text();
     throw new Error(`Failed to fetch products: ${res.status} - ${errorText}`);
   }
 
-  const products = await res.json();
-  return products;
+ const json = await res.json();
+const products = json.data;
+console.log('pr data', products)
+return products
+
 };

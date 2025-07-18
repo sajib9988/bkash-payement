@@ -11,10 +11,7 @@ export interface IUser{
    
 }
 
-export enum MediaType {
-  MOVIE = "MOVIE",
-  SERIES = "SERIES"
-}
+
 
 export enum UserRole {
   ADMIN = "ADMIN",
@@ -42,38 +39,7 @@ export interface User {
   updatedAt: string;
 }
 
-export interface Media {
-  id: string;
-  title: string;
-  description: string;
-  genre: string;
-  thumbnail: string | File ;
-  type: string;
-  videoUrls: string[];
-  amount: number;
-  releaseDate: string;
-  createdAt: string;
-  updatedAt: string;
-  rating?: number; // Optional, as it’s not in the provided response
-}
 
-export interface Rating {
-  id: string;
-  userId: string;
-  mediaId: string;
-  rating: number;
-  user?: User;
-  media?: Media;
-}
-
-export type IReview = {
-  id?: string;
-  userId?: string;
-  mediaId: string;
-  comment: string;
-  rating?: string; 
-  createdAt?: Date;
-};
 
 export interface Payment {
   id: string;
@@ -87,85 +53,24 @@ export interface Payment {
   createdAt: string;
   updatedAt: string;
   user?: User;
-  media?: Media;
+  
 }
 
-export interface WatchHistory {
+
+export type IProduct = {
   id: string;
-  userId: string;
-  mediaId: string;
-  watchedAt: string;
-  user?: User;
-  media?: Media;
-}
-
-export interface WatchlistItem {
-  id: string;
-  userId: string;
-  mediaId: string;
-  addedAt: string;
-  media?: Media;
-}
-
-
-export interface MediaResponse {
-  success: boolean;
-  message: string;
-  data: {
-    meta: {
-      page: number;
-      limit: number;
-      total: number;
-    };
-    data: Media[];
-  };
-}
-
-
-export type IPaymentData = {
-  amount: number;
-  transactionId: string;
-  name: string;
-  email: string;
-  userId: string;
-  contentId: string;
-  type: "MOVIE" | "SERIES";
+  title: string;
+  description?: string;
+  price: number;
+  image: any; // Json type usually becomes `any`
+ 
 };
 
+export interface ICartItem {
+  product: IProduct;
+  quantity: number;
+}
 
 
 // type/type.ts
 // for serach type
-
-
-export interface IMediaFilter {
-  searchTerm?: string;
-  genre?: string;
-  title?: string;
-  type?: "MOVIE" | "SERIES" | "ALL"; // এখানে "ALL" যোগ করলাম
-  releaseDate?: string;
-}
-
-export interface IOptionsMedia {
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: "asc" | "desc";
-}
-
-// ✅ Combined type
-export type MediaQueryParams = IOptionsMedia & IMediaFilter;
-
-// Get All Media
-export interface MediaParams {
-  searchTerm?: string;
-  genre?: string;
-  title?: string;
-  type?: 'MOVIE' | 'SERIES';
-  releaseDate?: string;
-  page?: number;
-  limit?: number;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
-}
-  
