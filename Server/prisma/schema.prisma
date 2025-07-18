@@ -28,9 +28,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  devices   Device[]
-  orders    Order[]
-  payments  Payment[]
+  devices  Device[]
+  orders   Order[]
+  payments Payment[]
 }
 
 model Device {
@@ -53,15 +53,16 @@ model Product {
   updatedAt   DateTime @updatedAt
 
   orderItems  OrderItem[]
+  PaymentItem PaymentItem[]
 }
 
 model Order {
-  id             String        @id @default(uuid())
-  userId         String
-  totalAmount    Float
-  status         PaymentStatus @default(PENDING)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id              String        @id @default(uuid())
+  userId          String
+  totalAmount     Float
+  status          PaymentStatus @default(PENDING)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   shippingName    String
   shippingPhone   String
   shippingStreet  String
@@ -69,36 +70,50 @@ model Order {
   shippingZip     String
   shippingCountry String
 
-  user        User          @relation(fields: [userId], references: [id])
-  payment     Payment?
-  orderItems  OrderItem[]
+  user       User        @relation(fields: [userId], references: [id])
+  payment    Payment?    @relation(fields: [paymentId], references: [id])
+  orderItems OrderItem[]
+  paymentId  String?
 }
 
-
 model OrderItem {
-  id        String   @id @default(uuid())
+  id        String @id @default(uuid())
   orderId   String
   productId String
-  quantity  Int      @default(1)
+  quantity  Int    @default(1)
   price     Float
 
-  order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }
 
 model Payment {
   id                 String        @id @default(uuid())
-  orderId           String        @unique
-  userId            String
-  amount            Float
-  invoice           String
-  status            PaymentStatus @default(PENDING)
-  transactionId     String?       @unique
+  userId             String
+  amount             Float
+  invoice            String
+  status             PaymentStatus @default(PENDING)
+  transactionId      String?       @unique
   paymentGatewayData Json?
+  billingName        String?
+  billingEmail       String?
+  billingPhone       String?
+  billingAddress     String?
 
-  createdAt         DateTime      @default(now())
-  updatedAt         DateTime      @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  order             Order         @relation(fields: [orderId], references: [id])
-  user              User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id])
+  paymentItems PaymentItem[]
+  Order        Order[]
+}
+
+model PaymentItem {
+  id        String @id @default(uuid())
+  paymentId String
+  productId String
+  quantity  Int
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
 }

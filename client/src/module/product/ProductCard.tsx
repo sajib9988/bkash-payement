@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { ShoppingCart, Star, Eye } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
+import { useUser } from '@/context/userContext';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner'; // ✅ add this import
 
 interface ProductImage {
   url: string;
@@ -23,31 +26,34 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const { user } = useUser();
+  const router = useRouter();
+  const { cart, addToCart } = useCart();
 
-const {cart,addToCart}= useCart()
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(price);
-  };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+  const handleAddToCart = () => {
+    if (!user) {
+      toast.error("Login ছাড়া কার্টে পণ্য যুক্ত করা যাবে না!");
+      router.push("/login?redirectPath=/products");
+      return;
+    }
+    addToCart(product, 1);
+    toast.success("কার্টে যুক্ত করা হয়েছে!");
   };
 
   const nextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === product.image.length - 1 ? 0 : prev + 1
     );
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? product.image.length - 1 : prev - 1
     );
   };
@@ -111,17 +117,14 @@ const {cart,addToCart}= useCart()
 
       {/* Content Section */}
       <div className="p-4">
-        {/* Title */}
         <h3 className="text-lg font-semibold text-gray-800 mb-2 line-clamp-2">
           {product.title}
         </h3>
 
-        {/* Description */}
         <p className="text-gray-600 text-sm mb-3 line-clamp-2">
           {product.description}
         </p>
 
-        {/* Price Section */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-2">
             <span className="text-2xl font-bold text-gray-900">
@@ -129,7 +132,6 @@ const {cart,addToCart}= useCart()
             </span>
           </div>
           
-          {/* Rating (placeholder) */}
           <div className="flex items-center space-x-1">
             <div className="flex space-x-1">
               {[...Array(5)].map((_, i) => (
@@ -140,10 +142,11 @@ const {cart,addToCart}= useCart()
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="flex space-x-2">
-          <button onClick={() => addToCart(product, 1)} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2">
-    
+          <button
+            onClick={handleAddToCart}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+          >
             <ShoppingCart className="w-4 h-4" />
             <span>Add to Cart</span>
           </button>
@@ -151,8 +154,6 @@ const {cart,addToCart}= useCart()
             Buy Now
           </button>
         </div>
-
-      
       </div>
     </div>
   );

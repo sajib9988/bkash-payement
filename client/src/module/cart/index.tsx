@@ -1,13 +1,23 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
+import Link from 'next/link';
 
 const ShoppingCart = () => {
   const { cart, removeFromCart, updateCartItemQuantity, clearCart, getCartTotal } = useCart();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  if (!isClient) {
+    return null; // or <p>Loading...</p>
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -19,13 +29,13 @@ const ShoppingCart = () => {
         <div className="space-y-4">
           {cart.map((item) => (
             <div key={item.product.id} className="flex items-center border rounded-lg p-4 shadow-sm">
-             <Image
-  src={item.product.image?.[0]?.url || '/placeholder.jpg'} // fallback added too
-  alt={item.product.title}
-  width={80}
-  height={80}
-  className="rounded-md object-cover mr-4"
-/>
+              <Image
+                src={item.product.image?.[0]?.url || '/placeholder.jpg'}
+                alt={item.product.title}
+                width={80}
+                height={80}
+                className="rounded-md object-cover mr-4"
+              />
 
               <div className="flex-grow">
                 <h2 className="text-xl font-semibold">{item.product.title}</h2>
@@ -77,7 +87,7 @@ const ShoppingCart = () => {
             <Button variant="outline" onClick={clearCart} className="mr-2">
               Clear Cart
             </Button>
-            <Button>Proceed to Checkout</Button>
+            <Link href={'/checkout'}>Proceed to Checkout</Link>
           </div>
         </div>
       )}

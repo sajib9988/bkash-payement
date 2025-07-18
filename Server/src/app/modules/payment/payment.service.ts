@@ -5,6 +5,31 @@ import { createBkashPaymentRequest } from './bkash.service';
 import { PaymentStatus } from '@prisma/client';
 import { BkashCallbackPayload, BkashPaymentResponse } from '../../type';
 
+export const createPayment = async (payload: any, userId: string) => {
+  const { items, total, name, email, phone, address } = payload;
+
+  const payment = await prisma.payment.create({
+    data: {
+      userId,
+      amount: total,
+      status: PaymentStatus.PENDING,
+      invoice: `INV-${uuidv4()}`,
+      billingAddress: address,
+      billingEmail: email,
+      billingName: name,
+      billingPhone: phone,
+      paymentItems: {
+        create: items.map((item: any) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      },
+    },
+  });
+
+  return payment;
+};
+
 export const createBkashPayment = async (
   amount: string,
   userId: string,

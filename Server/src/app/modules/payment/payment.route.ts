@@ -5,6 +5,7 @@ import auth from '../../middleware/auth';
 
 const router = Router();
 
+router.post('/init', auth('user'), catchAsync(initiatePayment));
 router.post('/bkash/initiate',auth('user'), catchAsync(initiatePayment));
 router.post('/bkash/callback',auth('user'), catchAsync(bkashCallback));
 
