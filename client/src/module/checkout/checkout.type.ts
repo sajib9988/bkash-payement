@@ -3,4 +3,5 @@ export interface CheckoutFormValues {
   email: string;
   phone: string;
   address: string;
+  district: string;
 }

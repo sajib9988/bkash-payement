@@ -24,6 +24,7 @@ const productSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional(),
   price: z.number().min(1, "Price must be at least 1"),
+  weight: z.number().min(0, "Weight must be a positive number").optional(),
   images: z.array(z.any()).optional()
 })
 
@@ -39,6 +40,7 @@ export default function ProductForm() {
       title: "",
       description: "",
       price: 0,
+      weight: 0,
       images: []
     }
   })
@@ -68,7 +70,8 @@ export default function ProductForm() {
       formData.append("data", JSON.stringify({
         title: data.title,
         description: data.description,
-        price: data.price
+        price: data.price,
+        weight: data.weight,
       }))
 
       if (data.images && data.images.length > 0) {
@@ -133,6 +136,24 @@ export default function ProductForm() {
                     <Input
                       type="number"
                       placeholder="Enter product price"
+                      {...field}
+                      onChange={e => field.onChange(Number(e.target.value))}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="weight"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>weight(kg)</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      placeholder="Enter product weight"
                       {...field}
                       onChange={e => field.onChange(Number(e.target.value))}
                     />

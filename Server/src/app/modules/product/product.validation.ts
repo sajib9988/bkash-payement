@@ -9,4 +9,6 @@ export const productZodSchema = z.object({
     (val) => Number(val),
     z.number({ required_error: 'Price must be a number' })
   ),
+  weight:z.number({
+    required_error: 'Weight must be a number',}).optional()
 });

@@ -6,6 +6,7 @@ interface IProductInput {
   title: string;
   description?: string;
   price: number | string;
+  weight?: number; // Optional field for product weight
 }
 export const addProduct= async (data: IProductInput, files: Express.Multer.File[])=>{
 
@@ -30,6 +31,7 @@ export const addProduct= async (data: IProductInput, files: Express.Multer.File[
         title: data.title,
         description: data.description,
         price: typeof data.price === 'string' ? parseFloat(data.price) : data.price,
+        weight: data.weight,
         image: uploadImage, 
       },
     });

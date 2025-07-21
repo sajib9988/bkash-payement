@@ -1,8 +1,9 @@
+
 import express from 'express';
 import { userRoutes } from '../modules/user/user.route';
 import { AuthRoutes } from '../modules/auth/auth.route';
-import { PaymentRoutes } from '../modules/payment/payment.route';
 import { ProductRoutes } from '../modules/product/product.route';
+import { ShippingRoutes } from '../modules/shipping/shipping.route';
 
 
 
@@ -20,13 +21,14 @@ const moduleRoutes = [
         route: AuthRoutes
     },
 
-    {
-        path: '/payment',
-        route: PaymentRoutes
-    },
+   
     {
         path: '/product',
         route: ProductRoutes
+    },
+    {
+        path: '/shipping-cost',
+        route: ShippingRoutes
     },
   
 

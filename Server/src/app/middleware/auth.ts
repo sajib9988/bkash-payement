@@ -12,15 +12,19 @@ const auth = (...roles:  role[]) => {
         try {
             const token = req.headers.authorization
 
+            console.log('Authorization Header:', token);
             if (!token) {
+                console.log('No token found');
                 throw new ApiError(httpStatus.UNAUTHORIZED, "You are not authorized!")
             }
- 
             const verifiedUser = jwtHelpers.verifyToken(token, config.jwt.secret as string)
-
+            console.log('Verified User:', verifiedUser);
             req.user = verifiedUser;
- 
-            if (roles.length && !roles.includes(verifiedUser.role)) {
+            if (
+                roles.length &&
+                !roles.map(r => r.toLowerCase()).includes(verifiedUser.role.toLowerCase())
+            ) {
+                console.log('Role not permitted:', verifiedUser.role);
                 throw new ApiError(httpStatus.FORBIDDEN, "Forbidden!")
             }
             next()
