@@ -8,7 +8,7 @@ import { CheckoutFormValues } from "./checkout.type";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
-import { createPayment } from "@/service/payement";
+
 import { getDistricts, getShippingCost } from "@/service/shippingService";
 import { useEffect, useState } from "react";
 
@@ -67,6 +67,8 @@ const Checkout = () => {
     }
   }, [watchedDistrict, cart]);
 
+  const [paymentMethod, setPaymentMethod] = useState("bkash");
+
   const onSubmit = async (data: CheckoutFormValues) => {
     const checkoutData = {
       ...data,
@@ -78,17 +80,26 @@ const Checkout = () => {
     };
 
     try {
-      const result = await createPayment(checkoutData);
-
-      const bkashURL = result?.data;
-      console.log("Bkash URL:", result);
-
-      if (bkashURL) {
-        toast.success("Redirecting to bKash...");
-        clearCart();
-        window.location.href = bkashURL;
-      } else {
-        toast.error("Failed to initiate payment: No bKash URL received.");
+      if (paymentMethod === "bkash") {
+        const result = await createPayment(checkoutData);
+        const bkashURL = result?.data;
+        if (bkashURL) {
+          toast.success("Redirecting to bKash...");
+          clearCart();
+          window.location.href = bkashURL;
+        } else {
+          toast.error("Failed to initiate payment: No bKash URL received.");
+        }
+      } else if (paymentMethod === "pathao") {
+        const result = await pathaoPayment(checkoutData);
+        const pathaoURL = result?.data;
+        if (pathaoURL) {
+          toast.success("Redirecting to Pathao...");
+          clearCart();
+          window.location.href = pathaoURL;
+        } else {
+          toast.error("Failed to initiate payment: No Pathao URL received.");
+        }
       }
     } catch (error) {
       toast.error("Failed to initiate payment.");
@@ -169,6 +180,37 @@ const Checkout = () => {
                 ))}
               </select>
               {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>}
+            </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Payment Method</label>
+              <div className="mt-2 flex items-center">
+                <input
+                  type="radio"
+                  id="bkash"
+                  name="paymentMethod"
+                  value="bkash"
+                  checked={paymentMethod === "bkash"}
+                  onChange={() => setPaymentMethod("bkash")}
+                  className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+                />
+                <label htmlFor="bkash" className="ml-3 block text-sm font-medium text-gray-700">
+                  bKash
+                </label>
+              </div>
+              <div className="mt-2 flex items-center">
+                <input
+                  type="radio"
+                  id="pathao"
+                  name="paymentMethod"
+                  value="pathao"
+                  checked={paymentMethod === "pathao"}
+                  onChange={() => setPaymentMethod("pathao")}
+                  className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
+                />
+                <label htmlFor="pathao" className="ml-3 block text-sm font-medium text-gray-700">
+                  Pathao
+                </label>
+              </div>
             </div>
             <button
               type="submit"

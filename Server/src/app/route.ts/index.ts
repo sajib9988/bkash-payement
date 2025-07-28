@@ -3,7 +3,8 @@ import express from 'express';
 import { userRoutes } from '../modules/user/user.route';
 import { AuthRoutes } from '../modules/auth/auth.route';
 import { ProductRoutes } from '../modules/product/product.route';
-import { ShippingRoutes } from '../modules/shipping/shipping.route';
+
+import { PathaoShippingRoutes } from '../modules/pathao/pathao.route';
 
 
 
@@ -27,8 +28,8 @@ const moduleRoutes = [
         route: ProductRoutes
     },
     {
-        path: '/shipping-cost',
-        route: ShippingRoutes
+        path: '/shipping',
+        route: PathaoShippingRoutes
     },
   
 
