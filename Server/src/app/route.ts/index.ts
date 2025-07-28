@@ -29,7 +29,7 @@ const moduleRoutes = [
         route: ProductRoutes
     },
     {
-        path: '/shipping',
+        path: '/',
         route: PathaoShippingRoutes
     },
     {

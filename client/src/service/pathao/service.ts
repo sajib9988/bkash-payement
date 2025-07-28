@@ -1,14 +1,15 @@
 'use server'
 
 import { ICreateOrderPayload, IEstimatePayload } from "@/type/type";
+import { cookies } from "next/headers";
 
 const getBaseUrl = () => {
   // Change this to your backend base URL if needed
-  return "http://localhost:5000/api/v1/pathao";
+  return `${process.env.NEXT_PUBLIC_BASE_API}/`;
 };
 
 export const estimateShipping = async (payload: IEstimatePayload) => {
-  const res = await fetch(`${getBaseUrl()}/estimate`, {
+  const res = await fetch(`${getBaseUrl()}/orders/estimate`,{ 
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,7 +21,7 @@ export const estimateShipping = async (payload: IEstimatePayload) => {
 };
 
 export const createOrder = async (payload: ICreateOrderPayload) => {
-  const res = await fetch(`${getBaseUrl()}/pathao/order`, {
+  const res = await fetch(`${getBaseUrl()}/orders`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -33,7 +34,7 @@ export const createOrder = async (payload: ICreateOrderPayload) => {
 };
 
 export const trackOrder = async (tracking_number: string) => {
-  const res = await fetch(`${getBaseUrl()}/pathao/track/${tracking_number}`, {
+  const res = await fetch(`${getBaseUrl()}/track/${tracking_number}`, {
     method: "GET",
   });
 
@@ -44,16 +45,24 @@ export const trackOrder = async (tracking_number: string) => {
 
 
 export const getCityList = async () => {
+  const accessToken = (await cookies()).get("accessToken")?.value;
   const res = await fetch(`${getBaseUrl()}/cities`, {
     method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
   console.log("City List Response:", res);
   return res.json();
 };
 
 export const getZoneList = async (city_id: number) => {
+   const accessToken = (await cookies()).get("accessToken")?.value;
   const res = await fetch(`${getBaseUrl()}/zones/${city_id}`, {
     method: "GET",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
     console.log("Zone List Response:", res);
   return res.json();
