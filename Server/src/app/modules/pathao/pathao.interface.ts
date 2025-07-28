@@ -6,7 +6,7 @@ export interface IEstimatePayload {
 }
 
 export interface ICreateOrderPayload {
-  store_id: string;
+ 
   recipient_name: string;
   recipient_phone: string;
   recipient_city: string;

@@ -68,3 +68,39 @@ export const trackOrderService = async (tracking_number: string) => {
 
   return res.data;
 };
+
+// pathao.service.ts (এর নিচে যুক্ত করো)
+
+export const getCityListService = async () => {
+  const token = await getAccessToken();
+
+  const res = await axios.get(
+    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/courier/city-list`, // ✔️ endpoint
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
+
+  return res.data;
+};
+
+
+export const getZoneListService = async (city_id: number) => {
+  const token = await getAccessToken();
+  const res = await axios.get(
+    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/cities/${city_id}/zone-list`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data.data;
+};
+
+export const getAreaListService = async (zone_id: number) => {
+  const token = await getAccessToken();
+  const res = await axios.get(
+    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/zones/${zone_id}/area-list`,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return res.data.data;
+};

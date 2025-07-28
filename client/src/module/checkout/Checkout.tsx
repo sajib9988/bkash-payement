@@ -9,9 +9,9 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
-import { estimatePathaoShipping, getDistricts } from "@/service/shippingService";
-import { pathaoPayment } from "@/service/paymentService";
 import { useEffect, useState } from "react";
+import { estimateShipping, getCityList, createOrder } from "@/service/pathao/service";
+
 
 const checkoutSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -26,7 +26,6 @@ const Checkout = () => {
   const router = useRouter();
   const [districts, setDistricts] = useState<string[]>([]);
   const [shippingCost, setShippingCost] = useState<number>(0);
-  const [selectedDistrict, setSelectedDistrict] = useState<string>("");
 
   const {
     register,
@@ -40,26 +39,38 @@ const Checkout = () => {
   const watchedDistrict = watch("district");
 
   useEffect(() => {
-    const fetchDistricts = async () => {
+    const fetchCities = async () => {
       try {
-        const data = await getDistricts();
-        console.log("API response for districts:", data);
-        setDistricts(data);
+        const data = await getCityList();
+        console.log("City List API response:", data);
+        setDistricts(Array.isArray(data?.data) ? data.data.map((city: { name: string }) => city.name) : []);
       } catch (error) {
-        toast.error("Failed to fetch districts.");
+        toast.error("Failed to fetch cities.");
       }
     };
-    fetchDistricts();
+    fetchCities();
   }, []);
 
   useEffect(() => {
     if (watchedDistrict) {
       const fetchShippingCost = async () => {
         try {
+          const weight = cart.reduce(
+            (acc, item) => acc + (item.product.weight || 0.5) * item.quantity,
+            0
+          );
           const zone = watchedDistrict === "Dhaka" ? "inside_dhaka" : "outside_dhaka";
-          const weight = cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0);
-          const data = await estimatePathaoShipping(zone, weight);
-          setShippingCost(data.cost.rounded_based);
+          const payload = {
+            city: watchedDistrict,
+            item_type: "product",
+            recipient_city: watchedDistrict,
+            recipient_zone: zone,
+            delivery_type: "regular",
+            item_weight: String(weight),
+            weight,
+          };
+          const data = await estimateShipping(payload);
+          setShippingCost(data?.data?.cost?.rounded_based || 0);
         } catch (error) {
           toast.error("Failed to fetch shipping cost.");
         }
@@ -68,32 +79,42 @@ const Checkout = () => {
     }
   }, [watchedDistrict, cart]);
 
-  const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
-
   const onSubmit = async (data: CheckoutFormValues) => {
+    const zone = watchedDistrict === "Dhaka" ? "inside_dhaka" : "outside_dhaka";
     const checkoutData = {
-      ...data,
+      
+      paymentMethod: "cash_on_delivery",
+      delivery_type: "regular", // or whatever your API expects
       items: cart.map((item) => ({
         productId: item.product.id,
         quantity: item.quantity,
       })),
       total: getCartTotal() + shippingCost,
+      recipient_name: data.name,
+      recipient_phone: data.phone,
+      recipient_email: data.email,
+      recipient_address: data.address,
+      recipient_city: data.district,
+      recipient_zone: zone,
+      shipping_cost: shippingCost,
+      item_type: "product", // use first item's type or static value
+      item_quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
+      item_weight: cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0),
+      amount_to_collect: getCartTotal() + shippingCost,
+      item_description: cart.map(item => item.product.title).join(", "),
+      // Add other required fields from ICreateOrderPayload as needed
     };
 
     try {
-      if (paymentMethod === "pathao") {
-        const result = await pathaoPayment(checkoutData);
-        const pathaoURL = result?.data;
-        if (pathaoURL) {
-          toast.success("Redirecting to Pathao...");
-          clearCart();
-          window.location.href = pathaoURL;
-        } else {
-          toast.error("Failed to initiate payment: No Pathao URL received.");
-        }
+      const res = await createOrder(checkoutData);
+      if (!res.success) {
+        throw new Error(res.message || "Order creation failed");
       }
+      toast.success("Order placed successfully with Cash on Delivery!");
+      clearCart();
+      router.push("/success"); // adjust this route as needed
     } catch (error) {
-      toast.error("Failed to initiate payment.");
+      toast.error("Failed to place order.");
     }
   };
 
@@ -104,7 +125,6 @@ const Checkout = () => {
         <div>
           <h2 className="text-2xl font-semibold mb-4">Billing Information</h2>
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Form fields */}
             <div className="mb-4">
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                 Name
@@ -113,7 +133,7 @@ const Checkout = () => {
                 type="text"
                 id="name"
                 {...register("name")}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
@@ -125,7 +145,7 @@ const Checkout = () => {
                 type="email"
                 id="email"
                 {...register("email")}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
@@ -137,7 +157,7 @@ const Checkout = () => {
                 type="tel"
                 id="phone"
                 {...register("phone")}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
             </div>
@@ -149,7 +169,7 @@ const Checkout = () => {
                 id="address"
                 {...register("address")}
                 rows={4}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
               />
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
             </div>
@@ -160,10 +180,9 @@ const Checkout = () => {
               <select
                 id="district"
                 {...register("district")}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
               >
                 <option value="">Select a district</option>
-       
                 {(Array.isArray(districts) ? districts : []).map((district) => (
                   <option key={district} value={district}>
                     {district}
@@ -172,26 +191,9 @@ const Checkout = () => {
               </select>
               {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>}
             </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">Payment Method</label>
-              <div className="mt-2 flex items-center">
-                <input
-                  type="radio"
-                  id="cash_on_delivery"
-                  name="paymentMethod"
-                  value="cash_on_delivery"
-                  checked={paymentMethod === "cash_on_delivery"}
-                  onChange={() => setPaymentMethod("cash_on_delivery")}
-                  className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
-                />
-                <label htmlFor="cash_on_delivery" className="ml-3 block text-sm font-medium text-gray-700">
-                  Cash on Delivery
-                </label>
-              </div>
-            </div>
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
             >
               Place Order
             </button>
@@ -210,15 +212,15 @@ const Checkout = () => {
               </div>
             ))}
             <div className="border-t pt-4">
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between">
                 <p>Subtotal</p>
                 <p>${getCartTotal().toFixed(2)}</p>
               </div>
-              <div className="flex justify-between items-center">
+              <div className="flex justify-between">
                 <p>Shipping</p>
                 <p>${shippingCost.toFixed(2)}</p>
               </div>
-              <div className="flex justify-between items-center font-bold text-lg">
+              <div className="flex justify-between font-bold text-lg">
                 <p>Total</p>
                 <p>${(getCartTotal() + shippingCost).toFixed(2)}</p>
               </div>

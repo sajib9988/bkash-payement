@@ -5,6 +5,7 @@ import { AuthRoutes } from '../modules/auth/auth.route';
 import { ProductRoutes } from '../modules/product/product.route';
 
 import { PathaoShippingRoutes } from '../modules/pathao/pathao.route';
+import { districtRoutes } from '../modules/district/district.route';
 
 
 
@@ -30,6 +31,10 @@ const moduleRoutes = [
     {
         path: '/shipping',
         route: PathaoShippingRoutes
+    },
+    {
+        path: '/',
+        route: districtRoutes
     },
   
 
