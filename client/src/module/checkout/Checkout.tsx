@@ -9,7 +9,8 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
-import { getDistricts, getShippingCost } from "@/service/shippingService";
+import { estimatePathaoShipping, getDistricts } from "@/service/shippingService";
+import { pathaoPayment } from "@/service/paymentService";
 import { useEffect, useState } from "react";
 
 const checkoutSchema = z.object({
@@ -57,7 +58,7 @@ const Checkout = () => {
         try {
           const zone = watchedDistrict === "Dhaka" ? "inside_dhaka" : "outside_dhaka";
           const weight = cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0);
-          const data = await getShippingCost(zone, weight);
+          const data = await estimatePathaoShipping(zone, weight);
           setShippingCost(data.cost.rounded_based);
         } catch (error) {
           toast.error("Failed to fetch shipping cost.");
@@ -67,7 +68,7 @@ const Checkout = () => {
     }
   }, [watchedDistrict, cart]);
 
-  const [paymentMethod, setPaymentMethod] = useState("bkash");
+  const [paymentMethod, setPaymentMethod] = useState("cash_on_delivery");
 
   const onSubmit = async (data: CheckoutFormValues) => {
     const checkoutData = {
@@ -80,17 +81,7 @@ const Checkout = () => {
     };
 
     try {
-      if (paymentMethod === "bkash") {
-        const result = await createPayment(checkoutData);
-        const bkashURL = result?.data;
-        if (bkashURL) {
-          toast.success("Redirecting to bKash...");
-          clearCart();
-          window.location.href = bkashURL;
-        } else {
-          toast.error("Failed to initiate payment: No bKash URL received.");
-        }
-      } else if (paymentMethod === "pathao") {
+      if (paymentMethod === "pathao") {
         const result = await pathaoPayment(checkoutData);
         const pathaoURL = result?.data;
         if (pathaoURL) {
@@ -186,29 +177,15 @@ const Checkout = () => {
               <div className="mt-2 flex items-center">
                 <input
                   type="radio"
-                  id="bkash"
+                  id="cash_on_delivery"
                   name="paymentMethod"
-                  value="bkash"
-                  checked={paymentMethod === "bkash"}
-                  onChange={() => setPaymentMethod("bkash")}
+                  value="cash_on_delivery"
+                  checked={paymentMethod === "cash_on_delivery"}
+                  onChange={() => setPaymentMethod("cash_on_delivery")}
                   className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
                 />
-                <label htmlFor="bkash" className="ml-3 block text-sm font-medium text-gray-700">
-                  bKash
-                </label>
-              </div>
-              <div className="mt-2 flex items-center">
-                <input
-                  type="radio"
-                  id="pathao"
-                  name="paymentMethod"
-                  value="pathao"
-                  checked={paymentMethod === "pathao"}
-                  onChange={() => setPaymentMethod("pathao")}
-                  className="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300"
-                />
-                <label htmlFor="pathao" className="ml-3 block text-sm font-medium text-gray-700">
-                  Pathao
+                <label htmlFor="cash_on_delivery" className="ml-3 block text-sm font-medium text-gray-700">
+                  Cash on Delivery
                 </label>
               </div>
             </div>

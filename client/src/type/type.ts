@@ -82,6 +82,7 @@ export interface IEstimatePayload {
   recipient_city: string;
   recipient_zone: string;
   delivery_type: string;
+  item_weight: string;
 }
 
 export interface ICreateOrderPayload {
