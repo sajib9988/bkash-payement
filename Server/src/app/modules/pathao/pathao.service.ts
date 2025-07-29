@@ -75,14 +75,14 @@ export const getCityListService = async () => {
   const token = await getAccessToken();
 
   const res = await axios.get(
-    `${process.env.getBaseUrl}/aladdin/api/v1/courier/city-list`, // ✔️ endpoint
+    `${process.env.getBaseUrl}/aladdin/api/v1/city-list`, // ✔️ endpoint
     {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     }
   );
-
+console.log("City List API response:", res.data);
   return res.data;
 };
 

@@ -95,7 +95,8 @@ export const trackOrderService = async (tracking_number: string) => {
   const token = await getAccessToken();
 
   const res = await fetch(
-    `${getBaseUrl()}aladdin/api/v1/orders/${tracking_number}/info`,
+        `${getBaseUrl()}aladdin/api/v1/orders?tracking_number=${tracking_number}`,
+
     {
       method: 'GET',
       headers: {
@@ -117,7 +118,7 @@ export const trackOrderService = async (tracking_number: string) => {
 export const getCityList = async () => {
   const accessToken = (await cookies()).get('accessToken')?.value;
 
-    const res = await fetch(`${getBaseUrl()}aladdin/api/v1/courier/city-list`, {
+    const res = await fetch(`${getBaseUrl()}aladdin/api/v1/city-list`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
