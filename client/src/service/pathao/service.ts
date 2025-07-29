@@ -18,7 +18,7 @@ const getAccessToken = async () => {
 export const estimateShippingService = async (payload: IEstimatePayload) => {
   const token = await getAccessToken();
 
-  const res = await fetch(`${getBaseUrl()}/aladdin/api/v1/merchant/price-plan`, {
+  const res = await fetch(`${getBaseUrl()}/pathao/merchant/price-plan`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -49,7 +49,7 @@ export const createOrderService = async (payload: ICreateOrderPayload) => {
   const token = await getAccessToken();
 
   const res = await fetch(
-    `${process.env.getBaseUrl}/aladdin/api/v1/orders`,
+    `${process.env.getBaseUrl}/pathao/orders`,
     {
       method: "POST",
       headers: {
@@ -95,7 +95,7 @@ export const trackOrderService = async (tracking_number: string) => {
   const token = await getAccessToken();
 
   const res = await fetch(
-        `${getBaseUrl()}aladdin/api/v1/orders?tracking_number=${tracking_number}`,
+        `${getBaseUrl()}/pathao/orders?tracking_number=${tracking_number}`,
 
     {
       method: 'GET',
@@ -118,7 +118,7 @@ export const trackOrderService = async (tracking_number: string) => {
 export const getCityList = async () => {
   const accessToken = (await cookies()).get('accessToken')?.value;
 
-    const res = await fetch(`${getBaseUrl()}aladdin/api/v1/city-list`, {
+    const res = await fetch(`${getBaseUrl()}/pathao/city-list`, {
     method: 'GET',
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -138,7 +138,7 @@ export const getZoneList = async (city_id: number) => {
   const accessToken = (await cookies()).get('accessToken')?.value;
 
   const res = await fetch(
-    `${getBaseUrl()}aladdin/api/v1/cities/${city_id}/zone-list`,
+    `${getBaseUrl()}/pathao/cities/${city_id}/zone-list`,
     {
       method: 'GET',
       headers: {
@@ -160,7 +160,7 @@ export const getAreaList = async (zone_id: number) => {
   const accessToken = (await cookies()).get('accessToken')?.value;
 
   const res = await fetch(
-    `${getBaseUrl()}aladdin/api/v1/zones/${zone_id}/area-list`,
+    `${getBaseUrl()}/pathao/zones/${zone_id}/area-list`,
     {
       method: 'GET',
       headers: {
