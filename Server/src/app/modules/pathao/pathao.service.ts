@@ -134,11 +134,12 @@ export const trackOrderService = async (consignment_id: string) => {
 };
 
 // ✅ এই function টাই মূল সমস্যা ছিল
+// Updated pathao.service.ts - Replace your existing getCityListService function
+
 export const getCityListService = async () => {
   console.log('🔍 Fetching city list from Pathao API using fetch...');
 
-  const accessToken = await getAccessToken();
-console.log('Access Token from city:', accessToken);
+  const accessToken = await getAccessToken(); // এই ফাংশন তোমার আগে থেকে আছে ধরে নিচ্ছি
 
   const response = await fetch(`${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`, {
     method: 'GET',
@@ -147,7 +148,7 @@ console.log('Access Token from city:', accessToken);
       'Authorization': `Bearer ${accessToken}`,
     },
   });
-console.log( 'Response status:', response);
+
   if (!response.ok) {
     const errorData = await response.json();
     console.error("❌ City List API failed:", {
