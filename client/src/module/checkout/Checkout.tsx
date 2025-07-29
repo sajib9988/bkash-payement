@@ -10,8 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
 import { useEffect, useState } from "react";
-import { createOrderService, estimateShippingService, getCityList, getZoneList,  } from "@/service/pathao/service";
-
+import { createOrderService, estimateShippingService, getCityList, getZoneList } from "@/service/pathao/service";
 
 const checkoutSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -24,8 +23,9 @@ const checkoutSchema = z.object({
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
   const router = useRouter();
-  const [districts, setDistricts] = useState<string[]>([]);
+  const [districts, setDistricts] = useState<any[]>([]); // ✅ full city object রাখুন
   const [shippingCost, setShippingCost] = useState<number>(0);
+  const [loading, setLoading] = useState(false);
 
   const {
     register,
@@ -38,107 +38,152 @@ const Checkout = () => {
 
   const watchedDistrict = watch("district");
 
+  // ✅ Cities fetch করার সময় error handling যোগ করুন
   useEffect(() => {
     const fetchCities = async () => {
       try {
+        setLoading(true);
+        console.log('🔍 Starting to fetch cities...');
+        
         const data = await getCityList();
-        console.log("City List API response:", data);
-        setDistricts(Array.isArray(data?.data) ? data.data.map((city: { name: string }) => city.name) : []);
-      } catch (error) {
-        toast.error("Failed to fetch cities.");
+        console.log('✅ City List API response:', data);
+        
+        if (data?.success && Array.isArray(data?.data)) {
+          setDistricts(data.data); // ✅ full object রাখুন
+          console.log('✅ Districts set:', data.data.length, 'cities');
+        } else {
+          console.error('❌ Invalid city data structure:', data);
+          toast.error("Invalid city data received");
+        }
+      } catch (error: any) {
+        console.error('❌ Failed to fetch cities:', error);
+        toast.error(`Failed to fetch cities: ${error.message}`);
+      } finally {
+        setLoading(false);
       }
     };
+    
     fetchCities();
   }, []);
 
+  // ✅ Shipping cost calculation ঠিক করুন
   useEffect(() => {
-    if (watchedDistrict) {
+    if (watchedDistrict && districts.length > 0) {
       const fetchShippingCost = async () => {
         try {
+          // ✅ City name থেকে city_id খুঁজুন
+          const selectedCity = districts.find(city => city.name === watchedDistrict);
+          if (!selectedCity) {
+            console.error('❌ City not found:', watchedDistrict);
+            return;
+          }
+
           const weight = cart.reduce(
             (acc, item) => acc + (item.product.weight || 0.5) * item.quantity,
             0
           );
-          const zone = watchedDistrict === "Dhaka" ? "inside_dhaka" : "outside_dhaka";
+
+          // ✅ Default zone_id নিন (প্রথম zone বা ডিফল্ট)
+          const zoneList = await getZoneList(selectedCity.id);
+          const defaultZone = zoneList?.data?.[0];
+          
+          if (!defaultZone) {
+            console.error('❌ No zones found for city:', selectedCity.name);
+            return;
+          }
+
           const payload = {
-            city: watchedDistrict,
-            item_type: "product",
-            recipient_city: watchedDistrict,
-            recipient_zone: zone,
-            delivery_type: "regular",
-            item_weight: String(weight),
-            weight,
+            item_type: "2", // 2 = Parcel
+            recipient_city: selectedCity.id.toString(),
+            recipient_zone: defaultZone.id.toString(),
+            delivery_type: "48", // 48 = Normal delivery
+            item_weight: weight.toString(),
           };
+
+          console.log('🔍 Shipping estimate payload:', payload);
           const data = await estimateShippingService(payload);
-          setShippingCost(data?.data?.cost?.rounded_based || 0);
-        } catch (error) {
-          toast.error("Failed to fetch shipping cost.");
+          console.log('✅ Shipping cost response:', data);
+          
+          setShippingCost(data?.data?.price || 0);
+        } catch (error: any) {
+          console.error('❌ Failed to fetch shipping cost:', error);
+          toast.error(`Failed to fetch shipping cost: ${error.message}`);
         }
       };
+      
       fetchShippingCost();
     }
-  }, [watchedDistrict, cart]);
+  }, [watchedDistrict, cart, districts]);
 
-const onSubmit = async (data: CheckoutFormValues) => {
-  let cityId: number | undefined;
-  let zoneId: number | undefined;
+  const onSubmit = async (data: CheckoutFormValues) => {
+    try {
+      setLoading(true);
+      
+      // ✅ City এবং zone information সঠিকভাবে পান
+      const selectedCity = districts.find(city => city.name === data.district);
+      if (!selectedCity) {
+        throw new Error('Selected city not found');
+      }
 
-  // 1. Get cityId from city name
-  const cityList = await getCityList();
-  if (Array.isArray(cityList?.data)) {
-    const foundCity = cityList.data.find((city: { name: string }) => city.name === data.district);
-    cityId = foundCity?.id;
-  }
+      const zoneList = await getZoneList(selectedCity.id);
+      const defaultZone = zoneList?.data?.[0];
+      
+      if (!defaultZone) {
+        throw new Error('No zones found for selected city');
+      }
 
-  // 2. Get zoneId from cityId
-  if (cityId) {
-    const zoneList = await getZoneList(cityId);
-    if (Array.isArray(zoneList?.data)) {
-      const foundZone = zoneList.data.find((zone: { name: string }) => zone.name === data.zone);
-      zoneId = foundZone?.id;
+      const checkoutData = {
+        paymentMethod: "cash_on_delivery",
+        delivery_type: 48, // ✅ Normal delivery
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+        })),
+        total: getCartTotal() + shippingCost,
+        recipient_name: data.name,
+        recipient_phone: data.phone,
+        recipient_email: data.email,
+        recipient_address: data.address,
+        recipient_city: selectedCity.id, // ✅ number ID
+        recipient_zone: defaultZone.id, // ✅ number ID
+        shipping_cost: shippingCost,
+        item_type: 2, // ✅ Parcel
+        item_quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
+        item_weight: cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0),
+        amount_to_collect: getCartTotal() + shippingCost,
+        item_description: cart.map(item => item.product.title).join(", "),
+      };
+
+      console.log('🔍 Final checkout data:', checkoutData);
+
+      const res = await createOrderService(checkoutData);
+      
+      if (!res.success) {
+        throw new Error(res.message || "Order creation failed");
+      }
+      
+      toast.success("Order placed successfully with Cash on Delivery!");
+      clearCart();
+      router.push("/success");
+      
+    } catch (error: any) {
+      console.error('❌ Order creation failed:', error);
+      toast.error(`Failed to place order: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  // 3. Now build the payload
-  const checkoutData = {
-    paymentMethod: "cash_on_delivery",
-    delivery_type:1 ,
-    items: cart.map((item) => ({
-      productId: item.product.id,
-      quantity: item.quantity,
-    })),
-    total: getCartTotal() + shippingCost,
-    recipient_name: data.name,
-    recipient_phone: data.phone,
-    recipient_email: data.email,
-    recipient_address: data.address,
-    recipient_city: cityId ?? 0,
-    recipient_zone: zoneId ?? 0, // ✅ number, not string
-    shipping_cost: shippingCost,
-    item_type: 1,
-    item_quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
-    item_weight: cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0),
-    amount_to_collect: getCartTotal() + shippingCost,
-    item_description: cart.map(item => item.product.title).join(", "),
   };
-
-  try {
-    const res = await createOrderService(checkoutData);
-    if (!res.success) {
-      throw new Error(res.message || "Order creation failed");
-    }
-    toast.success("Order placed successfully with Cash on Delivery!");
-    clearCart();
-    router.push("/success");
-  } catch (error) {
-    toast.error("Failed to place order.");
-  }
-};
-
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Checkout</h1>
+      
+      {loading && (
+        <div className="text-center py-4">
+          <p>Loading...</p>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
           <h2 className="text-2xl font-semibold mb-4">Billing Information</h2>
@@ -155,6 +200,7 @@ const onSubmit = async (data: CheckoutFormValues) => {
               />
               {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name.message}</p>}
             </div>
+            
             <div className="mb-4">
               <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                 Email
@@ -167,6 +213,7 @@ const onSubmit = async (data: CheckoutFormValues) => {
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email.message}</p>}
             </div>
+            
             <div className="mb-4">
               <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
                 Phone
@@ -179,6 +226,7 @@ const onSubmit = async (data: CheckoutFormValues) => {
               />
               {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone.message}</p>}
             </div>
+            
             <div className="mb-4">
               <label htmlFor="address" className="block text-sm font-medium text-gray-700">
                 Address
@@ -191,32 +239,37 @@ const onSubmit = async (data: CheckoutFormValues) => {
               />
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address.message}</p>}
             </div>
+            
             <div className="mb-4">
               <label htmlFor="district" className="block text-sm font-medium text-gray-700">
-                District
+                District ({districts.length} cities available)
               </label>
               <select
                 id="district"
                 {...register("district")}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+                disabled={loading}
               >
                 <option value="">Select a district</option>
-                {(Array.isArray(districts) ? districts : []).map((district) => (
-                  <option key={district} value={district}>
-                    {district}
+                {districts.map((city) => (
+                  <option key={city.id} value={city.name}>
+                    {city.name}
                   </option>
                 ))}
               </select>
               {errors.district && <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>}
             </div>
+            
             <button
               type="submit"
-              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-2 px-4 rounded-md hover:bg-indigo-700 disabled:opacity-50"
             >
-              Place Order
+              {loading ? 'Processing...' : 'Place Order'}
             </button>
           </form>
         </div>
+        
         <div>
           <h2 className="text-2xl font-semibold mb-4">Order Summary</h2>
           <div className="border rounded-md p-4">
