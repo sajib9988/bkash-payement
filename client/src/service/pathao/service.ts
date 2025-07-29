@@ -3,191 +3,145 @@
 import { ICreateOrderPayload, IEstimatePayload } from '@/type/type';
 import { cookies } from 'next/headers';
 
-// ✅ সঠিক বেস URL পাওয়ার ফাংশন
+// বেস URL পাওয়ার ফাংশন
 const getBaseUrl = () => {
-  return process.env.NEXT_PUBLIC_BASE_API; // শেষে '/' নেই
+  return process.env.NEXT_PUBLIC_BASE_API; // ✅ শেষে '/' নেই
 };
 
-// এক্সেস টোকেন পাওয়ার ফাংশন
+// এক্সেস টোকেন পাওয়ার ফাংশন (এটা আসলে user token, pathao token নয়)
 const getAccessToken = async () => {
   const cookieStore = await cookies();
   return cookieStore.get('accessToken')?.value;
 };
 
-// 1. শিপিং এস্টিমেট ক্যালকুলেট করুন
-export const estimateShippingService = async (payload: IEstimatePayload) => {
-  const token = await getAccessToken();
-
-  const res = await fetch(`${getBaseUrl()}/pathao/merchant/price-plan`, {
-    method: 'POST',
+// ✅ Common request function with better error handling
+const makeRequest = async (endpoint: string, options: RequestInit = {}) => {
+  const userToken = await getAccessToken();
+  const url = `${getBaseUrl()}${endpoint}`;
+  
+  console.log(`🔍 Making request to: ${url}`);
+  
+  const config: RequestInit = {
+    ...options,
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      ...(userToken && { Authorization: `Bearer ${userToken}` }),
+      ...options.headers,
     },
+    cache: 'no-store',
+  };
+
+  const res = await fetch(url, config);
+  
+  console.log(`📊 Response status: ${res.status} for ${endpoint}`);
+
+  if (!res.ok) {
+    let errorMessage;
+    try {
+      const errorData = await res.json();
+      errorMessage = errorData.message || `HTTP ${res.status}`;
+      console.error('❌ Request failed:', errorData);
+    } catch {
+      errorMessage = `HTTP ${res.status} - ${res.statusText}`;
+    }
+    throw new Error(errorMessage);
+  }
+
+  const result = await res.json();
+  console.log(`✅ Request successful for ${endpoint}`);
+  return result;
+};
+
+// 1. শিপিং এস্টিমেট ক্যালকুলেট করুন
+export const estimateShippingService = async (payload: IEstimatePayload) => {
+  return await makeRequest('/pathao/merchant/price-plan', {
+    method: 'POST',
     body: JSON.stringify({
-      store_id: 1, // আপনার actual store_id দিন
       item_type: parseInt(payload.item_type),
       delivery_type: parseInt(payload.delivery_type),
       item_weight: parseFloat(payload.item_weight),
       recipient_city: parseInt(payload.recipient_city),
       recipient_zone: parseInt(payload.recipient_zone),
     }),
-    cache: 'no-store',
   });
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || 'Shipping estimate failed');
-  }
-
-  return await res.json();
 };
 
 // 2. নতুন অর্ডার তৈরি করুন
 export const createOrderService = async (payload: ICreateOrderPayload) => {
-  const token = await getAccessToken();
-
-  const res = await fetch(
-    `${getBaseUrl()}/pathao/orders`, // ✅ সঠিক URL
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        store_id: 1, // আপনার actual store_id দিন
-        merchant_order_id: payload.merchant_order_id,
-        recipient_name: payload.recipient_name,
-        recipient_phone: payload.recipient_phone,
-        recipient_address: payload.recipient_address,
-        recipient_city: payload.recipient_city,
-        recipient_zone: payload.recipient_zone,
-        recipient_area: payload.recipient_area,
-        delivery_type: payload.delivery_type,
-        item_type: payload.item_type,
-        item_quantity: payload.item_quantity,
-        item_weight: payload.item_weight,
-        item_description: payload.item_description,
-        special_instruction: payload.special_instruction,
-        amount_to_collect: payload.amount_to_collect,
-      }),
-      cache: "no-store",
-    }
-  );
-
-  if (!res.ok) {
-    let error;
-    try {
-      error = await res.json();
-    } catch {
-      error = { message: "Unknown error" };
-    }
-    throw new Error(error.message || "Order creation failed");
-  }
-
-  return await res.json();
+  return await makeRequest('/pathao/orders', {
+    method: 'POST',
+    body: JSON.stringify({
+      store_id: 1, // আপনার actual store_id দিন
+      merchant_order_id: payload.merchant_order_id,
+      recipient_name: payload.recipient_name,
+      recipient_phone: payload.recipient_phone,
+      recipient_address: payload.recipient_address,
+      recipient_city: payload.recipient_city,
+      recipient_zone: payload.recipient_zone,
+      recipient_area: payload.recipient_area,
+      delivery_type: payload.delivery_type,
+      item_type: payload.item_type,
+      item_quantity: payload.item_quantity,
+      item_weight: payload.item_weight,
+      item_description: payload.item_description,
+      special_instruction: payload.special_instruction,
+      amount_to_collect: payload.amount_to_collect,
+    }),
+  });
 };
 
 // 3. অর্ডার ট্র্যাক করুন
 export const trackOrderService = async (tracking_number: string) => {
-  const token = await getAccessToken();
-
-  const res = await fetch(
-    `${getBaseUrl()}/pathao/orders?tracking_number=${tracking_number}`,
-    {
-      method: 'GET',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      cache: 'no-store',
-    }
-  );
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: 'Unknown error' }));
-    throw new Error(error.message || 'Track order failed');
-  }
-
-  return await res.json();
+  return await makeRequest(`/pathao/orders?tracking_number=${tracking_number}`);
 };
 
-// 4. ✅ সব সিটি (শহর) এর তালিকা আনুন - সবচেয়ে গুরুত্বপূর্ণ ঠিক করা
+// 4. ✅ সব সিটি (শহর) এর তালিকা আনুন
 export const getCityList = async () => {
-  const accessToken = (await cookies()).get('accessToken')?.value;
-
-  console.log('🔍 Fetching city list with token:', accessToken ? 'Token exists' : 'No token');
-  console.log('🔍 API URL:', `${getBaseUrl()}/pathao/city-list`);
-
-  const res = await fetch(`${getBaseUrl()}/pathao/city-list`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    },
-    cache: 'no-store',
-  });
-
-  console.log('🔍 Response status:', res.status);
-  console.log('🔍 Response headers:', Object.fromEntries(res.headers.entries()));
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('❌ City list fetch failed:', errorText);
-    throw new Error(`Failed to fetch city list: ${res.status} - ${errorText}`);
+  console.log('🔍 Client: Requesting city list...');
+  
+  try {
+    const result = await makeRequest('/pathao/city-list');
+    console.log('✅ Client: City list received:', {
+      success: result.success,
+      dataLength: result.data?.length || 0
+    });
+    return result;
+  } catch (error: any) {
+    console.error('❌ Client: City list failed:', error.message);
+    throw new Error(`Failed to fetch city list: ${error.message}`);
   }
-
-  const result = await res.json();
-  console.log('✅ City list response:', result);
-  return result;
 };
 
 // 5. নির্দিষ্ট সিটির জন্য জোন লিস্ট আনুন
 export const getZoneList = async (city_id: number) => {
-  const accessToken = (await cookies()).get('accessToken')?.value;
-
-  const res = await fetch(
-    `${getBaseUrl()}/pathao/cities/${city_id}/zone-list`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: 'no-store',
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('❌ Zone list fetch failed:', errorText);
-    throw new Error(`Failed to fetch zone list: ${res.status} - ${errorText}`);
+  console.log(`🔍 Client: Requesting zones for city_id: ${city_id}`);
+  
+  try {
+    const result = await makeRequest(`/pathao/cities/${city_id}/zone-list`);
+    console.log('✅ Client: Zone list received:', {
+      success: result.success,
+      dataLength: result.data?.length || 0
+    });
+    return result;
+  } catch (error: any) {
+    console.error(`❌ Client: Zone list failed for city ${city_id}:`, error.message);
+    throw new Error(`Failed to fetch zone list: ${error.message}`);
   }
-
-  return await res.json();
 };
 
 // 6. নির্দিষ্ট জোনের জন্য আরিয়া লিস্ট আনুন
 export const getAreaList = async (zone_id: number) => {
-  const accessToken = (await cookies()).get('accessToken')?.value;
-
-  const res = await fetch(
-    `${getBaseUrl()}/pathao/zones/${zone_id}/area-list`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
-      cache: 'no-store',
-    }
-  );
-
-  if (!res.ok) {
-    const errorText = await res.text();
-    console.error('❌ Area list fetch failed:', errorText);
-    throw new Error(`Failed to fetch area list: ${res.status} - ${errorText}`);
+  console.log(`🔍 Client: Requesting areas for zone_id: ${zone_id}`);
+  
+  try {
+    const result = await makeRequest(`/pathao/zones/${zone_id}/area-list`);
+    console.log('✅ Client: Area list received:', {
+      success: result.success,
+      dataLength: result.data?.length || 0
+    });
+    return result;
+  } catch (error: any) {
+    console.error(`❌ Client: Area list failed for zone ${zone_id}:`, error.message);
+    throw new Error(`Failed to fetch area list: ${error.message}`);
   }
-
-  return await res.json();
 };
