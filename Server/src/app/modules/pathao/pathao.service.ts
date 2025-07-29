@@ -8,7 +8,7 @@ const getAccessToken = async () => {
   if (accessToken) return accessToken;
 
   const res = await axios.post(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/merchant/authorize`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/merchant/authorize`,
     {
       username: process.env.PATHAO_USERNAME,
       password: process.env.PATHAO_PASSWORD,
@@ -26,7 +26,7 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
   const token = await getAccessToken();
 
   const res = await axios.post(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/orders/estimate`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/orders/estimate`,
     payload,
     {
       headers: {
@@ -42,7 +42,7 @@ export const createOrderService = async (payload: ICreateOrderPayload) => {
   const token = await getAccessToken();
 
   const res = await axios.post(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/orders`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/orders`,
     payload,
     {
       headers: {
@@ -58,7 +58,7 @@ export const trackOrderService = async (tracking_number: string) => {
   const token = await getAccessToken();
 
   const res = await axios.get(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/orders/track?tracking_number=${tracking_number}`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/orders/track?tracking_number=${tracking_number}`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -75,7 +75,7 @@ export const getCityListService = async () => {
   const token = await getAccessToken();
 
   const res = await axios.get(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/courier/city-list`, // ✔️ endpoint
+    `${process.env.getBaseUrl}/aladdin/api/v1/courier/city-list`, // ✔️ endpoint
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -90,7 +90,7 @@ export const getCityListService = async () => {
 export const getZoneListService = async (city_id: number) => {
   const token = await getAccessToken();
   const res = await axios.get(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/cities/${city_id}/zone-list`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/cities/${city_id}/zone-list`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return res.data.data;
@@ -99,7 +99,7 @@ export const getZoneListService = async (city_id: number) => {
 export const getAreaListService = async (zone_id: number) => {
   const token = await getAccessToken();
   const res = await axios.get(
-    `${process.env.PATHAO_API_BASE}/aladdin/api/v1/zones/${zone_id}/area-list`,
+    `${process.env.getBaseUrl}/aladdin/api/v1/zones/${zone_id}/area-list`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
   return res.data.data;

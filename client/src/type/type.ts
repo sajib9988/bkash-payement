@@ -88,15 +88,19 @@ export interface IEstimatePayload {
 export interface ICreateOrderPayload {
   recipient_name: string;
   recipient_phone: string;
-  recipient_city: string;
-  recipient_zone: string;
+  recipient_city: number;        // ✅
+  recipient_zone: number;        // ✅
   recipient_address: string;
-  item_type: string;
-  item_quantity: number; // ✅ number
-  item_weight: number;   // ✅ number
-  delivery_type: string;
-  amount_to_collect: number; // ✅ number
+  item_type: number;             // ✅
+  item_quantity: number;         // ✅
+  item_weight: number;           // ✅
+  delivery_type: number;         // ✅
+  amount_to_collect: number;     // ✅
   item_description: string;
-  shipping_cost: number; // ✅ number
-  paymentMethod: string;
+  shipping_cost: number;         // ✅ (frontend-specific)
+  paymentMethod: string;         // ✅ (frontend-specific)
+  merchant_order_id?: string;    // ✅
+  recipient_area?: number;       // ✅
+  special_instruction?: string;  // ✅
 }
+

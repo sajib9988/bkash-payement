@@ -5,22 +5,23 @@ export interface IEstimatePayload {
   delivery_type: string;
 }
 
+// Backend-এর জন্য সঠিক payload
 export interface ICreateOrderPayload {
- 
+  store_id: number;
+  merchant_order_id?: string;
   recipient_name: string;
   recipient_phone: string;
-  recipient_city: string;
-  recipient_zone: string;
   recipient_address: string;
-  item_type: string;
-  item_quantity: string;
-  item_weight: string;
-  delivery_type: string;
-  amount_to_collect: string;
+  recipient_city: number;
+  recipient_zone: number;
+  recipient_area?: number;
+  delivery_type: number;
+  item_type: number;
+  item_quantity: number;
+  item_weight: number;
   item_description: string;
   special_instruction?: string;
-  packaging_required?: string;
-  actual_product_price?: string;
+  amount_to_collect: number;
 }
 
 export interface ITrackOrderParam {

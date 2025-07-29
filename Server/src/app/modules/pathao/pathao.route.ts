@@ -7,15 +7,15 @@ import { createOrder, estimateShippingCost, getAreaList, getCityList, getZoneLis
 
 const router = express.Router();
 
-router.post("/estimate", Validator(estimateValidation), estimateShippingCost);
-router.post("/order", Validator(createOrderValidation), createOrder);
-router.get("/track/:tracking_number", trackOrder);
+router.post("/merchant/price-plan", Validator(estimateValidation), estimateShippingCost);
+router.post("/orders", Validator(createOrderValidation), createOrder);
+router.get("/orders", trackOrder);
 // pathao.route.ts
 
 
 
-router.get("/cities", getCityList); // ✅ নতুন রাউট যুক্ত
-router.get("/cities/:city_id/zones", getZoneList);
-router.get("/zones/:zone_id/areas", getAreaList);
+router.get("/city-list", getCityList); // ✅ নতুন রাউট যুক্ত
+router.get("/cities/:city_id/zone-list", getZoneList);
+router.get("/zones/:zone_id/area-list", getAreaList);
 
 export const PathaoShippingRoutes = router;
