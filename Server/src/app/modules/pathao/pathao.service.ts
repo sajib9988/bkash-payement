@@ -36,6 +36,7 @@ const getAccessToken = async () => {
     });
 
     accessToken = res.data.access_token;
+    console.log('🔑 Access Token:', accessToken);
     tokenExpiry = Date.now() + (res.data.expires_in * 1000); // Convert to milliseconds
     
     return accessToken;
@@ -134,29 +135,38 @@ export const trackOrderService = async (consignment_id: string) => {
 
 // ✅ এই function টাই মূল সমস্যা ছিল
 export const getCityListService = async () => {
-  console.log('🔍 Fetching city list from Pathao API...');
-  
-  const config = {
-    method: 'get',
-    url: `${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`
-  };
+  console.log('🔍 Fetching city list from Pathao API using fetch...');
 
-  try {
-    const res = await makeAuthenticatedRequest(config);
-    console.log("✅ City List API response:", {
-      success: true,
-      dataLength: res.data?.data?.length || 0
-    });
-    return res.data;
-  } catch (error: any) {
+  const accessToken = await getAccessToken();
+console.log('Access Token from city:', accessToken);
+
+  const response = await fetch(`${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json; charset=UTF-8',
+      'Authorization': `Bearer ${accessToken}`,
+    },
+  });
+console.log( 'Response status:', response);
+  if (!response.ok) {
+    const errorData = await response.json();
     console.error("❌ City List API failed:", {
-      status: error.response?.status,
-      message: error.message,
-      data: error.response?.data
+      status: response.status,
+      message: errorData?.message || 'Something went wrong',
+      data: errorData,
     });
-    throw error;
+    throw new Error(`City List fetch failed with status ${response.status}`);
   }
+
+  const data = await response.json();
+  console.log("✅ City List API response:", {
+    success: true,
+    dataLength: data?.data?.length || 0,
+  });
+
+  return data;
 };
+
 
 export const getZoneListService = async (city_id: number) => {
   console.log(`🔍 Fetching zones for city_id: ${city_id}`);
