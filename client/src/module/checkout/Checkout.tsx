@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
 import { useEffect, useState } from "react";
-import { createOrderService, estimateShippingService, getCityList,  } from "@/service/pathao/service";
+import { createOrderService, estimateShippingService, getCityList, getZoneList,  } from "@/service/pathao/service";
 
 
 const checkoutSchema = z.object({
@@ -79,44 +79,62 @@ const Checkout = () => {
     }
   }, [watchedDistrict, cart]);
 
-  const onSubmit = async (data: CheckoutFormValues) => {
-    const zone = watchedDistrict === "Dhaka" ? "inside_dhaka" : "outside_dhaka";
-    const checkoutData = {
-      
-      paymentMethod: "cash_on_delivery",
-      delivery_type: "regular", // or whatever your API expects
-      items: cart.map((item) => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-      })),
-      total: getCartTotal() + shippingCost,
-      recipient_name: data.name,
-      recipient_phone: data.phone,
-      recipient_email: data.email,
-      recipient_address: data.address,
-      recipient_city: data.district,
-      recipient_zone: zone,
-      shipping_cost: shippingCost,
-      item_type: "product", // use first item's type or static value
-      item_quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
-      item_weight: cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0),
-      amount_to_collect: getCartTotal() + shippingCost,
-      item_description: cart.map(item => item.product.title).join(", "),
-      // Add other required fields from ICreateOrderPayload as needed
-    };
+const onSubmit = async (data: CheckoutFormValues) => {
+  let cityId: number | undefined;
+  let zoneId: number | undefined;
 
-    try {
-      const res = await createOrderService(checkoutData);
-      if (!res.success) {
-        throw new Error(res.message || "Order creation failed");
-      }
-      toast.success("Order placed successfully with Cash on Delivery!");
-      clearCart();
-      router.push("/success"); // adjust this route as needed
-    } catch (error) {
-      toast.error("Failed to place order.");
+  // 1. Get cityId from city name
+  const cityList = await getCityList();
+  if (Array.isArray(cityList?.data)) {
+    const foundCity = cityList.data.find((city: { name: string }) => city.name === data.district);
+    cityId = foundCity?.id;
+  }
+
+  // 2. Get zoneId from cityId
+  if (cityId) {
+    const zoneList = await getZoneList(cityId);
+    if (Array.isArray(zoneList?.data)) {
+      const foundZone = zoneList.data.find((zone: { name: string }) => zone.name === data.zone);
+      zoneId = foundZone?.id;
     }
+  }
+
+  // 3. Now build the payload
+  const checkoutData = {
+    paymentMethod: "cash_on_delivery",
+    delivery_type:1 ,
+    items: cart.map((item) => ({
+      productId: item.product.id,
+      quantity: item.quantity,
+    })),
+    total: getCartTotal() + shippingCost,
+    recipient_name: data.name,
+    recipient_phone: data.phone,
+    recipient_email: data.email,
+    recipient_address: data.address,
+    recipient_city: cityId ?? 0,
+    recipient_zone: zoneId ?? 0, // ✅ number, not string
+    shipping_cost: shippingCost,
+    item_type: 1,
+    item_quantity: cart.reduce((acc, item) => acc + item.quantity, 0),
+    item_weight: cart.reduce((acc, item) => acc + (item.product.weight || 0.5) * item.quantity, 0),
+    amount_to_collect: getCartTotal() + shippingCost,
+    item_description: cart.map(item => item.product.title).join(", "),
   };
+
+  try {
+    const res = await createOrderService(checkoutData);
+    if (!res.success) {
+      throw new Error(res.message || "Order creation failed");
+    }
+    toast.success("Order placed successfully with Cash on Delivery!");
+    clearCart();
+    router.push("/success");
+  } catch (error) {
+    toast.error("Failed to place order.");
+  }
+};
+
 
   return (
     <div className="container mx-auto px-4 py-8">
