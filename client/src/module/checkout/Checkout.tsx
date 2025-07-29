@@ -10,7 +10,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 
 import { useEffect, useState } from "react";
-import { estimateShipping, getCityList, createOrder } from "@/service/pathao/service";
+import { createOrderService, estimateShippingService, getCityList,  } from "@/service/pathao/service";
 
 
 const checkoutSchema = z.object({
@@ -69,7 +69,7 @@ const Checkout = () => {
             item_weight: String(weight),
             weight,
           };
-          const data = await estimateShipping(payload);
+          const data = await estimateShippingService(payload);
           setShippingCost(data?.data?.cost?.rounded_based || 0);
         } catch (error) {
           toast.error("Failed to fetch shipping cost.");
@@ -106,7 +106,7 @@ const Checkout = () => {
     };
 
     try {
-      const res = await createOrder(checkoutData);
+      const res = await createOrderService(checkoutData);
       if (!res.success) {
         throw new Error(res.message || "Order creation failed");
       }
