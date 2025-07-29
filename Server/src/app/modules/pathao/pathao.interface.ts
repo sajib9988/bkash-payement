@@ -1,11 +1,11 @@
 export interface IEstimatePayload {
-  item_type: string;
-  recipient_city: string;
-  recipient_zone: string;
-  delivery_type: string;
+  item_type: string; // Will be converted to number in service
+  recipient_city: string; // Will be converted to number in service
+  recipient_zone: string; // Will be converted to number in service
+  delivery_type: string; // Will be converted to number in service
+  item_weight: string; // Will be converted to number in service
 }
 
-// Backend-এর জন্য সঠিক payload
 export interface ICreateOrderPayload {
   store_id: number;
   merchant_order_id?: string;
@@ -15,15 +15,11 @@ export interface ICreateOrderPayload {
   recipient_city: number;
   recipient_zone: number;
   recipient_area?: number;
-  delivery_type: number;
-  item_type: number;
+  delivery_type: number; // 48 for Normal, 12 for On Demand
+  item_type: number; // 1 for Document, 2 for Parcel
   item_quantity: number;
-  item_weight: number;
+  item_weight: number; // Min 0.5, Max 10
   item_description: string;
   special_instruction?: string;
-  amount_to_collect: number;
-}
-
-export interface ITrackOrderParam {
-  tracking_number: string;
+  amount_to_collect: number; // 0 for non-COD
 }

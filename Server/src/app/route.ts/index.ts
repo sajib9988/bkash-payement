@@ -29,7 +29,7 @@ const moduleRoutes = [
         route: ProductRoutes
     },
     {
-        path: '/aladdin/api/v1',
+        path: '/pathao',
         route: PathaoShippingRoutes
     },
     {
