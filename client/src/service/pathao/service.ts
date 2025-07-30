@@ -95,7 +95,6 @@ export const trackOrderService = async (tracking_number: string) => {
   return await makeRequest(`/pathao/orders?tracking_number=${tracking_number}`);
 };
 
-// 4. ✅ সব সিটি (শহর) এর তালিকা আনুন
 export const getCityList = async () => {
   console.log('🔍 Client: Requesting city list...');
   
@@ -105,14 +104,18 @@ export const getCityList = async () => {
       success: result.success,
       dataLength: result.data?.length || 0
     });
-    return result;
+    return result?.data?.data;
+
   } catch (error: any) {
     console.error('❌ Client: City list failed:', error.message);
     throw new Error(`Failed to fetch city list: ${error.message}`);
   }
 };
 
-// 5. নির্দিষ্ট সিটির জন্য জোন লিস্ট আনুন
+
+
+
+
 export const getZoneList = async (city_id: number) => {
   console.log(`🔍 Client: Requesting zones for city_id: ${city_id}`);
   
@@ -129,7 +132,21 @@ export const getZoneList = async (city_id: number) => {
   }
 };
 
-// 6. নির্দিষ্ট জোনের জন্য আরিয়া লিস্ট আনুন
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const getAreaList = async (zone_id: number) => {
   console.log(`🔍 Client: Requesting areas for zone_id: ${zone_id}`);
   

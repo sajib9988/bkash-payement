@@ -6,6 +6,11 @@ let tokenExpiry: number | null = null;
 
 const getAccessToken = async () => {
   // Check if token is still valid (add 5 minute buffer)
+    console.log("🔐 Using ENV:", {
+    base: process.env.PATHAO_API_BASE,
+    client_id: process.env.PATHAO_CLIENT_ID,
+    username: process.env.PATHAO_USERNAME,
+  });
   if (accessToken && tokenExpiry && Date.now() < (tokenExpiry - 300000)) {
     console.log('✅ Using existing token');
     return accessToken;
@@ -135,37 +140,21 @@ export const trackOrderService = async (consignment_id: string) => {
 
 // ✅ এই function টাই মূল সমস্যা ছিল
 // Updated pathao.service.ts - Replace your existing getCityListService function
-
 export const getCityListService = async () => {
-  console.log('🔍 Fetching city list from Pathao API using fetch...');
+  console.log('🔍 Fetching city list from Pathao API...');
+  
+  const config = {
+    method: 'get',
+    url: `${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`,
+  };
 
-  const accessToken = await getAccessToken(); // এই ফাংশন তোমার আগে থেকে আছে ধরে নিচ্ছি
-
-  const response = await fetch(`${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json; charset=UTF-8',
-      'Authorization': `Bearer ${accessToken}`,
-    },
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json();
-    console.error("❌ City List API failed:", {
-      status: response.status,
-      message: errorData?.message || 'Something went wrong',
-      data: errorData,
-    });
-    throw new Error(`City List fetch failed with status ${response.status}`);
-  }
-
-  const data = await response.json();
+  const res = await makeAuthenticatedRequest(config);
   console.log("✅ City List API response:", {
     success: true,
-    dataLength: data?.data?.length || 0,
+    dataLength: res.data?.data?.length || 0,
   });
 
-  return data;
+  return res.data;
 };
 
 
