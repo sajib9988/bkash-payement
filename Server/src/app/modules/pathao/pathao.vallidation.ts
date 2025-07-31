@@ -1,19 +1,19 @@
-
+// pathao.validation.ts
 import { z } from "zod";
 
 export const estimateValidation = z.object({
+  
+    store_id: z.number(), // ✅ Added store_id which is required
+    item_type: z.number(),
+    recipient_city: z.number(),
+    recipient_zone: z.number(),
+    delivery_type: z.number(),
+    item_weight: z.number(),
+  })
 
-  body: z.object({
-    item_type: z.number(), // Changed to number
-    recipient_city: z.number(), // Changed to number
-    recipient_zone: z.number(), // Changed to number
-    delivery_type: z.number(), // Changed to number
-    item_weight: z.number(), // Changed to number
-  }),
-});
 
 export const createOrderValidation = z.object({
-  body: z.object({
+  
     store_id: z.number(),
     recipient_name: z.string(),
     recipient_phone: z.string(),
@@ -29,5 +29,4 @@ export const createOrderValidation = z.object({
     item_description: z.string(),
     special_instruction: z.string().optional(),
     merchant_order_id: z.string().optional(),
-  }),
-});
+  })

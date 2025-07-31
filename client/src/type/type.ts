@@ -77,12 +77,12 @@ export interface ICartItem {
 // for serach type
 
 export interface IEstimatePayload {
-  store_id: number;
-  item_type: number; // 1 or 2
-  delivery_type: number; // 48 or 12
-  item_weight: number; // in kg
+  store_id: number; // ✅ Changed to number and required
+  item_type: number; // 1 for Document, 2 for Parcel
   recipient_city: number;
   recipient_zone: number;
+  delivery_type: number; // 48 for Normal, 12 for On Demand
+  item_weight: number; // Min 0.5, Max 10
 }
 
 

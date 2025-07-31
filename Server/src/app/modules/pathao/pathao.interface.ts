@@ -1,10 +1,12 @@
 export interface IEstimatePayload {
-  item_type: string; // Will be converted to number in service
-  recipient_city: string; // Will be converted to number in service
-  recipient_zone: string; // Will be converted to number in service
-  delivery_type: string; // Will be converted to number in service
-  item_weight: string; // Will be converted to number in service
+  store_id: number; // ✅ Added store_id which is required
+  item_type: number;
+  recipient_city: number;
+  recipient_zone: number;
+  delivery_type: number;
+  item_weight: number;
 }
+
 
 export interface ICreateOrderPayload {
   store_id: number;

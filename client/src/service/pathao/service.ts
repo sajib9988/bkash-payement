@@ -17,7 +17,12 @@ const getAccessToken = async () => {
 // 1. Estimate Shipping Price
 export const estimateShippingService = async (payload: IEstimatePayload) => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/merchant/price-plan`, {
+  const url = `${getBaseUrl()}/pathao/merchant/price-plan`;
+  
+  console.log("🔍 Making request to:", url);
+  console.log("📤 Payload:", payload);
+  
+  const res = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json; charset=UTF-8',
@@ -26,15 +31,28 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
     body: JSON.stringify(payload),
     cache: 'no-store',
   });
-console.log("📤 Sending payload to Pathao:", payload);
+
+  console.log("📥 Response status:", res.status);
+  console.log("📥 Response OK:", res.ok);
 
   if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Shipping estimate failed');
+    let errorMessage = 'Shipping estimate failed';
+    try {
+      const err = await res.json();
+      errorMessage = err.message || errorMessage;
+      console.error("❌ Error response:", err);
+    } catch (parseError) {
+      console.error("❌ Failed to parse error response");
+      errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+    }
+    throw new Error(errorMessage);
   }
 
-  return res.json();
+  const result = await res.json();
+  console.log("✅ Success response:", result);
+  return result;
 };
+
 
 // 2. Create Order
 export const createOrderService = async (payload: ICreateOrderPayload) => {

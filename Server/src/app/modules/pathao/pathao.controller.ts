@@ -7,6 +7,7 @@ import { createOrderService, estimateShippingService, getAreaListService, getCit
 
 export const estimateShippingCost = catchAsync(async (req: Request, res: Response) => {
   const result = await estimateShippingService(req.body);
+  console.log("📦 Shipping Estimate Result:", result);
   sendResponse(res, {
     statusCode: 200,
     success: true,

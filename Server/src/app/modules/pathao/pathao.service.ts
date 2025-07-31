@@ -98,20 +98,22 @@ const makeAuthenticatedRequest = async (config: any, retryCount = 0): Promise<an
   }
 };
 
+// Server/src/app/modules/pathao/pathao.service.ts
 export const estimateShippingService = async (payload: IEstimatePayload) => {
   const config = {
     method: 'post',
     url: `${process.env.PATHAO_API_BASE}/aladdin/api/v1/merchant/price-plan`,
     data: {
-      store_id: 1, // ✅ Fixed store_id - আপনার actual store_id দিন
-      item_type: parseInt(payload.item_type),
-      delivery_type: parseInt(payload.delivery_type), 
-      item_weight: parseFloat(payload.item_weight),
-      recipient_city: parseInt(payload.recipient_city),
-      recipient_zone: parseInt(payload.recipient_zone),
+      store_id: parseInt(process.env.PATHAO_STORE_ID || '1'), // ✅ ENV থেকে নিন
+      item_type: payload.item_type,      // ✅ Already number from validation
+      delivery_type: payload.delivery_type,  // ✅ Already number
+      item_weight: payload.item_weight,       // ✅ Already number
+      recipient_city: payload.recipient_city, // ✅ Already number
+      recipient_zone: payload.recipient_zone, // ✅ Already number
     }
   };
 
+  console.log("📤 Sending to Pathao API:", config.data); // Debug log
   const res = await makeAuthenticatedRequest(config);
   return res.data;
 };
