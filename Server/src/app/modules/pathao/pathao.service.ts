@@ -61,16 +61,16 @@ const getAccessToken = async () => {
 };
 
 // ✅ Retry logic যোগ করা হয়েছে
-const makeAuthenticatedRequest = async (config: any, retryCount = 0): Promise<any> => {
+const makeAuthenticatedRequest = async (config: any): Promise<any> => {
   const token = await getAccessToken();
-  
+
   const requestConfig = {
     ...config,
     headers: {
       ...config.headers,
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
-      'Accept': 'application/json'
+      'Accept': 'application/json',
     },
   };
 
@@ -83,18 +83,10 @@ const makeAuthenticatedRequest = async (config: any, retryCount = 0): Promise<an
     console.error(`❌ Request failed:`, {
       status: error.response?.status,
       url: config.url,
-      retryCount
+      message: error.message,
     });
 
-    // If 401 and haven't retried yet, refresh token and try again
-    if (error.response?.status === 401 && retryCount === 0) {
-      console.log('🔄 Token expired, refreshing and retrying...');
-      accessToken = null; // Force token refresh
-      tokenExpiry = null;
-      return makeAuthenticatedRequest(config, retryCount + 1);
-    }
-    
-    throw error;
+    throw error; // সরাসরি ব্যর্থ হবে, পুনরায় চেষ্টা করবে না
   }
 };
 
@@ -103,7 +95,7 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
     method: 'post',
     url: `${process.env.PATHAO_API_BASE}/aladdin/api/v1/merchant/price-plan`,
     data: {
-      store_id: parseInt(process.env.PATHAO_STORE_ID || '1'), // ✅ ENV থেকে নিন
+     store_id: Number(process.env.PATHAO_STORE_ID), 
       item_type: payload.item_type,      // ✅ Already number from validation
       delivery_type: payload.delivery_type,  // ✅ Already number
       item_weight: payload.item_weight,       // ✅ Already number
@@ -112,10 +104,10 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
     }
   };
 
-  console.log("📤 Sending to Pathao API:", config.data); // Debug log
+  console.log("📤 Sending to Pathao API:", config.url, config.data); // Debug log
   const res = await makeAuthenticatedRequest(config);
-  console.log("✅ Estimate Shipping API response:", res.data);
-    console.log("📦 Shipping Estimate Result:", res.data);
+  console.log("✅ Estimate Shipping API response:", res);
+    // console.log("📦 Shipping Estimate Result:", res.data);
   return res.data;
 
 };
