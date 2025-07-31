@@ -4,4 +4,5 @@ export interface CheckoutFormValues {
   phone: string;
   address: string;
   district: string;
+  zone: string; // New field for zone
 }

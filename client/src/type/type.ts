@@ -76,14 +76,15 @@ export interface ICartItem {
 // type/type.ts
 // for serach type
 
-
 export interface IEstimatePayload {
-  item_type: string;
-  recipient_city: string;
-  recipient_zone: string;
-  delivery_type: string;
-  item_weight: string;
+  store_id: number;
+  item_type: number; // 1 or 2
+  delivery_type: number; // 48 or 12
+  item_weight: number; // in kg
+  recipient_city: number;
+  recipient_zone: number;
 }
+
 
 export interface ICreateOrderPayload {
   recipient_name: string;

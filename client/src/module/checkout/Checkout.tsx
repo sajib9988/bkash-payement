@@ -23,7 +23,9 @@ const checkoutSchema = z.object({
   phone: z.string().min(1, "Phone number is required"),
   address: z.string().min(1, "Address is required"),
   district: z.string().min(1, "District is required"),
+  zone: z.string().min(1, "Zone is required"), // ✅ new
 });
+
 
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
@@ -32,6 +34,8 @@ const Checkout = () => {
     []
   );
   const [shippingCost, setShippingCost] = useState<number>(0);
+  const [zones, setZones] = useState<{ id: number; name: string }[]>([]);
+
   const [loading, setLoading] = useState(false);
 
   const {
@@ -44,58 +48,123 @@ const Checkout = () => {
   });
 
   const watchedDistrict = watch("district");
+  const watchedZone = watch("zone");
 
-  // ✅ Fetch cities from Pathao
-  useEffect(() => {
-    const fetchCities = async () => {
-      setLoading(true);
+
+
+useEffect(() => {
+  const fetchCities = async () => {
+    setLoading(true);
+    try {
       const res = await getCityList();
       console.log("✅ Raw city response:", res);
-      setDistricts(res || []);
-      console.log("✅ Districts:", districts);
+      
+      
+      let cityData = [];
+      
+      if (res?.data && Array.isArray(res.data)) {
+  
+        cityData = res.data;
+      } else if (res && Array.isArray(res)) {
+       
+        cityData = res;
+      } else {
+        console.error("❌ Unexpected response structure:", res);
+        toast.error("Failed to load cities");
+        return;
+      }
+      
+    
+      const formattedCities = cityData.map((city: any) => ({
+        id: city.city_id,
+        name: city.city_name
+      }));
+      
+      setDistricts(formattedCities);
+      console.log("✅ Formatted Districts:", formattedCities);
+      
+    } catch (error) {
+      console.error("❌ Failed to fetch cities:", error);
+      toast.error("Failed to load cities");
+    } finally {
       setLoading(false);
-    };
-    fetchCities();
-  }, []);
+    }
+  };
+  fetchCities();
+}, []);
 
-  // ✅ Fetch shipping cost when district changes
-  useEffect(() => {
+
+// ✅ Fetch zones when district changes
+useEffect(() => {
+  const fetchZones = async () => {
     if (!watchedDistrict || districts.length === 0) return;
 
-    const fetchShippingCost = async () => {
-      try {
-        const selectedCity = districts.find(
-          (city) => city.name === watchedDistrict
-        );
-        if (!selectedCity) return;
+    const selectedCity = districts.find(city => city.name === watchedDistrict);
+    if (!selectedCity) return;
 
-        const zoneList = await getZoneList(selectedCity.id);
-        const defaultZone = zoneList?.data?.[0];
-        if (!defaultZone) return;
+    try {
+      const res = await getZoneList(selectedCity.id);
+      const formattedZones = res?.data?.map((zone: any) => ({
+        id: zone.zone_id,
+        name: zone.zone_name
+      })) || [];
 
-        const weight = cart.reduce(
-          (acc, item) => acc + (item.product.weight || 0.5) * item.quantity,
-          0
-        );
+      setZones(formattedZones);
+    } catch (err) {
+      console.error("❌ Failed to load zones:", err);
+      toast.error("Failed to load zones");
+    }
+  };
 
-        const payload = {
-          item_type: "2",
-          recipient_city: selectedCity.id.toString(),
-          recipient_zone: defaultZone.id.toString(),
-          delivery_type: "48",
-          item_weight: weight.toString(),
-        };
+  fetchZones();
+}, [watchedDistrict, districts]);
 
-        const data = await estimateShippingService(payload);
-        setShippingCost(data?.data?.price || 0);
-      } catch (err: any) {
-        console.error("❌ Failed to fetch shipping cost:", err);
-        toast.error("Failed to fetch shipping cost");
-      }
-    };
 
-    fetchShippingCost();
-  }, [watchedDistrict, cart, districts]);
+
+
+
+
+
+
+  // ✅ Fetch shipping cost when district changes
+
+useEffect(() => {
+  if (!watchedDistrict || !watchedZone || districts.length === 0 || zones.length === 0) return;
+
+  const fetchShippingCost = async () => {
+    try {
+      const selectedCity = districts.find(city => city.name === watchedDistrict);
+      const selectedZone = zones.find(zone => zone.name === watchedZone);
+
+      if (!selectedCity || !selectedZone) return;
+
+      const weight = cart.reduce(
+        (acc, item) => acc + (item.product.weight || 0.5) * item.quantity,
+        0
+      );
+
+     const payload = {
+  store_id: 1,
+  item_type: 2,
+  recipient_city: selectedCity.id,
+  recipient_zone: selectedZone.id,
+  delivery_type: 48,
+  item_weight: weight,
+};
+
+
+      const data = await estimateShippingService(payload);
+      console.log("📦 Shipping Estimate Payload:", payload);
+      setShippingCost(data?.data?.price || 0);
+    } catch (err: any) {
+      console.error("❌ Failed to fetch shipping cost:", err);
+      toast.error("Failed to fetch shipping cost");
+    }
+  };
+
+  fetchShippingCost();
+}, [watchedDistrict, watchedZone, cart, districts, zones]); // ✅ include watchedZone here
+
 
   const onSubmit = async (data: CheckoutFormValues) => {
     try {
@@ -111,7 +180,7 @@ const Checkout = () => {
       if (!defaultZone) throw new Error("No zone found");
 
       const checkoutData = {
-        paymentMethod: "cash_on_delivery",
+        paymentMethod: "cash_on_delivery", 
         delivery_type: 48,
         items: cart.map((item) => ({
           productId: item.product.id,
@@ -208,6 +277,24 @@ const Checkout = () => {
                 </p>
               )}
             </div>
+<div className="mb-4">
+  <label className="block text-sm font-medium">Zone</label>
+  <select
+    {...register("zone")}
+    className="mt-1 block w-full border rounded-md"
+    disabled={zones.length === 0}
+  >
+    <option value="">Select zone</option>
+    {zones.map((zone) => (
+      <option key={zone.id} value={zone.name}>
+        {zone.name}
+      </option>
+    ))}
+  </select>
+  {errors.zone && (
+    <p className="text-red-500 text-sm">{errors.zone.message}</p>
+  )}
+</div>
 
             <div className="mb-4">
               <label className="block text-sm font-medium">District</label>
@@ -261,10 +348,15 @@ const Checkout = () => {
               <p>Subtotal:</p>
               <p>${getCartTotal().toFixed(2)}</p>
             </div>
-            <div className="flex justify-between">
-              <p>Shipping:</p>
-              <p>${shippingCost.toFixed(2)}</p>
-            </div>
+          <div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700">
+    Estimated Shipping Cost:
+  </label>
+  <p className="mt-1 text-base font-semibold text-indigo-700">
+    {shippingCost ? `$${shippingCost.toFixed(2)}` : "Calculating..."}
+  </p>
+</div>
+
             <div className="flex justify-between font-bold text-lg">
               <p>Total:</p>
               <p>${(getCartTotal() + shippingCost).toFixed(2)}</p>
