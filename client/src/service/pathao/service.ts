@@ -32,8 +32,8 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
     cache: 'no-store',
   });
 
-  console.log("📥 Response status:", res.status);
-  console.log("📥 Response OK:", res.ok);
+
+  console.log("📥 Response OK:", res);
 
   if (!res.ok) {
     let errorMessage = 'Shipping estimate failed';
@@ -134,7 +134,9 @@ export const getZoneList = async (city_id: number) => {
   }
 
   const result = await res.json();
+console.log("✅ Zone List API response:", result?.data?.data || []);
   return result?.data?.data || [];
+  
 };
 
 // 6. Get Area List

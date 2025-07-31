@@ -114,6 +114,7 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
 
   console.log("📤 Sending to Pathao API:", config.data); // Debug log
   const res = await makeAuthenticatedRequest(config);
+  console.log("✅ Estimate Shipping API response:", res.data);
     console.log("📦 Shipping Estimate Result:", res.data);
   return res.data;
 
