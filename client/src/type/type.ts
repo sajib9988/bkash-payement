@@ -77,7 +77,7 @@ export interface ICartItem {
 // for serach type
 
 export interface IEstimatePayload {
-  store_id: number; // ✅ Changed to number and required
+  
   item_type: number; // 1 for Document, 2 for Parcel
   recipient_city: number;
   recipient_zone: number;

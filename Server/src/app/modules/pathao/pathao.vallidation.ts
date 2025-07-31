@@ -3,7 +3,7 @@ import { z } from "zod";
 
 export const estimateValidation = z.object({
   
-    store_id: z.number(), // ✅ Added store_id which is required
+    store_id?: z.number(), // ✅ Added store_id which is required
     item_type: z.number(),
     recipient_city: z.number(),
     recipient_zone: z.number(),

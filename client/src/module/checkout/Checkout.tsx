@@ -144,7 +144,7 @@ useEffect(() => {
       );
 
      const payload = {
-  store_id: 1,
+
   item_type: 2,
   recipient_city: selectedCity.id,
   recipient_zone: selectedZone.id,
