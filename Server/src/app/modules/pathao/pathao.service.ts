@@ -98,7 +98,6 @@ const makeAuthenticatedRequest = async (config: any, retryCount = 0): Promise<an
   }
 };
 
-// Server/src/app/modules/pathao/pathao.service.ts
 export const estimateShippingService = async (payload: IEstimatePayload) => {
   const config = {
     method: 'post',
@@ -115,14 +114,19 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
 
   console.log("📤 Sending to Pathao API:", config.data); // Debug log
   const res = await makeAuthenticatedRequest(config);
+    console.log("📦 Shipping Estimate Result:", res.data);
   return res.data;
+
 };
 
 export const createOrderService = async (payload: ICreateOrderPayload) => {
   const config = {
     method: 'post',
     url: `${process.env.PATHAO_API_BASE}/aladdin/api/v1/orders`,
-    data: payload
+    data: {
+      ...payload,
+      store_id: parseInt(process.env.PATHAO_STORE_ID || '1'), // ✅ ENV থেকে নিন
+    },
   };
 
   const res = await makeAuthenticatedRequest(config);

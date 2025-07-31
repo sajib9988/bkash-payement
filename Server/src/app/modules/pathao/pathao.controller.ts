@@ -6,7 +6,17 @@ import sendResponse from "../../utils/sendResponse";
 import { createOrderService, estimateShippingService, getAreaListService, getCityListService, getZoneListService, trackOrderService } from "./pathao.service";
 
 export const estimateShippingCost = catchAsync(async (req: Request, res: Response) => {
-  const result = await estimateShippingService(req.body);
+
+  const storeId = process.env.STORE_ID  // Default to 1 if not set
+  
+  const finalData ={
+    ...req.body,
+    store_id: parseInt(storeId || '1'), // ✅ ENV থেকে নিন
+  }
+
+
+
+  const result = await estimateShippingService(finalData);
   console.log("📦 Shipping Estimate Result:", result);
   sendResponse(res, {
     statusCode: 200,
