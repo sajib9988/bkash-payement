@@ -27,7 +27,13 @@ export const estimateShippingCost = catchAsync(async (req: Request, res: Respons
 });
 
 export const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await createOrderService(req.body);
+
+  const finalData ={
+    ...req.body,
+    store_id: 148058, 
+  }
+
+  const result = await createOrderService(finalData);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -39,6 +45,7 @@ export const createOrder = catchAsync(async (req: Request, res: Response) => {
 export const trackOrder = catchAsync(async (req: Request, res: Response) => {
   const { tracking_number } = req.params;
   const result = await trackOrderService(tracking_number);
+    console.log("📦 Pathao Order Tracking Result:", result);
   sendResponse(res, {
     statusCode: 200,
     success: true,

@@ -2,6 +2,8 @@
 
 import { ICreateOrderPayload, IEstimatePayload } from '@/type/type';
 import { cookies } from 'next/headers';
+import { fetchWrapper } from './fetchWrapper';
+
 
 // BASE URL
 const getBaseUrl = () => {
@@ -18,143 +20,81 @@ const getAccessToken = async () => {
 export const estimateShippingService = async (payload: IEstimatePayload) => {
   const token = await getAccessToken();
   const url = `${getBaseUrl()}/pathao/merchant/price-plan`;
-  
-  console.log("🔍 Making request to:", url);
-  console.log("📤 Payload:", payload);
-  
-  const res = await fetch(url, {
+
+  const result = await fetchWrapper(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json; charset=UTF-8',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(payload),
-    cache: 'no-store',
+    body: payload,
+    token,
   });
 
-
-  console.log("📥 Response OK:", res);
-
-  if (!res.ok) {
-    let errorMessage = 'Shipping estimate failed';
-    try {
-      const err = await res.json();
-      errorMessage = err.message || errorMessage;
-      console.error("❌ Error response:", err);
-    } catch (parseError) {
-      console.error("❌ Failed to parse error response");
-      errorMessage = `HTTP ${res.status}: ${res.statusText}`;
-    }
-    throw new Error(errorMessage);
-  }
-
-  const result = await res.json();
-  console.log("✅ Success response:", result);
-  return result;
+  console.log("📦 Shipping Estimate Result:", result);
+  console.log("📦 Shipping Estimate Final Price:", result?.data?.data?.final_price || 0);
+  return result?.data?.data?.final_price || 0;
 };
-
 
 // 2. Create Order
 export const createOrderService = async (payload: ICreateOrderPayload) => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/orders`, {
+  const url = `${getBaseUrl()}/pathao/orders`;
+
+  const result = await fetchWrapper(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    body: JSON.stringify(payload),
-    cache: 'no-store',
+    body: payload,
+    token,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Order creation failed');
-  }
-
-  return res.json();
+  return result;
 };
 
 // 3. Track Order
 export const trackOrderService = async (tracking_number: string) => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/orders?tracking_number=${tracking_number}`, {
+  const url = `${getBaseUrl()}/pathao/orders?tracking_number=${tracking_number}`;
+
+  const result = await fetchWrapper(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    cache: 'no-store',
+    token,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Tracking failed');
-  }
-
-  return res.json();
+  return result;
 };
 
 // 4. Get City List
 export const getCityList = async () => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/city-list`, {
+  const url = `${getBaseUrl()}/pathao/city-list`;
+
+  const result = await fetchWrapper(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    cache: 'no-store',
+    token,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'City list fetch failed');
-  }
-
-  const result = await res.json();
   return result?.data?.data || [];
 };
 
 // 5. Get Zone List
 export const getZoneList = async (city_id: number) => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/cities/${city_id}/zone-list`, {
+  const url = `${getBaseUrl()}/pathao/cities/${city_id}/zone-list`;
+
+  const result = await fetchWrapper(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    cache: 'no-store',
+    token,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Zone list fetch failed');
-  }
-
-  const result = await res.json();
-console.log("✅ Zone List API response:", result?.data?.data || []);
+  console.log("✅ Zone List API response:", result?.data?.data || []);
   return result?.data?.data || [];
-  
 };
 
 // 6. Get Area List
 export const getAreaList = async (zone_id: number) => {
   const token = await getAccessToken();
-  const res = await fetch(`${getBaseUrl()}/pathao/zones/${zone_id}/area-list`, {
+  const url = `${getBaseUrl()}/pathao/zones/${zone_id}/area-list`;
+
+  const result = await fetchWrapper(url, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    cache: 'no-store',
+    token,
   });
 
-  if (!res.ok) {
-    const err = await res.json();
-    throw new Error(err.message || 'Area list fetch failed');
-  }
-
-  return res.json();
+  return result?.data?.data || [];
 };

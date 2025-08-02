@@ -131,7 +131,12 @@ const Checkout = () => {
         };
 
         const data = await estimateShippingService(payload);
-        setShippingCost(data?.data?.price || 0);
+ 
+
+        setShippingCost(data || 0);
+
+
+        
       } catch {
         toast.error("Failed to fetch shipping cost");
       }
@@ -179,7 +184,7 @@ const Checkout = () => {
         amount_to_collect: getCartTotal() + shippingCost,
         item_description: cart.map((item) => item.product.title).join(", "),
       };
-
+console.log("Checkout Data:", checkoutData);
       const res = await createOrderService(checkoutData);
       if (!res.success) throw new Error(res.message || "Order failed");
 
@@ -320,22 +325,25 @@ const Checkout = () => {
               </div>
             ))}
             <hr className="my-2" />
-            <div className="flex justify-between">
-              <p>Subtotal:</p>
-              <p>${getCartTotal().toFixed(2)}</p>
-            </div>
-            <div className="mb-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Estimated Shipping Cost:
-              </label>
-              <p className="mt-1 text-base font-semibold text-indigo-700">
-                {shippingCost ? `$${shippingCost.toFixed(2)}` : "Calculating..."}
-              </p>
-            </div>
-            <div className="flex justify-between font-bold text-lg">
-              <p>Total:</p>
-              <p>${(getCartTotal() + shippingCost).toFixed(2)}</p>
-            </div>
+        <div className="flex justify-between">
+  <p>Subtotal:</p>
+  <p>৳{getCartTotal().toFixed(2)}</p>
+</div>
+
+<div className="mb-4">
+  <label className="block text-sm font-medium text-gray-700">
+    Estimated Shipping Cost:
+  </label>
+  <p className="mt-1 text-base font-semibold text-indigo-700">
+    {shippingCost ? `৳${shippingCost.toFixed(2)}` : "Calculating..."}
+  </p>
+</div>
+
+<div className="flex justify-between font-bold text-lg">
+  <p>Total:</p>
+  <p>৳{(getCartTotal() + shippingCost).toFixed(2)}</p>
+</div>
+
           </div>
         </div>
       </div>

@@ -12,8 +12,7 @@ export const estimateValidation = z.object({
 
 
 export const createOrderValidation = z.object({
-  
-    store_id: z.number(),
+    store_id: z.number().optional(),
     recipient_name: z.string(),
     recipient_phone: z.string(),
     recipient_city: z.number(),
