@@ -6,6 +6,7 @@ import { ProductRoutes } from '../modules/product/product.route';
 
 import { PathaoShippingRoutes } from '../modules/pathao/pathao.route';
 import { districtRoutes } from '../modules/district/district.route';
+import { paypalRoutes } from '../modules/paypal/paypal.route';
 
 
 
@@ -35,6 +36,11 @@ const moduleRoutes = [
     {
         path: '/',
         route: districtRoutes
+    },
+  
+    {
+        path: '/paypal',
+        route: paypalRoutes
     },
   
 
