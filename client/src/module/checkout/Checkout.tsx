@@ -10,10 +10,10 @@ import { useCart } from "@/context/CartContext";
 import * as z from "zod";
 import { useShipping } from "./utils/useShipping";
 import { checkoutSchema } from "./utils/CheckOutSchema";
-import { handlePaypalPayment } from "./utils/paypalFlow";
+
 import { createPathaoOrder } from "./utils/pathaoOrder";
 import { useUser } from "@/context/userContext";
-
+import { handlePaypalPayment } from "./utils/paypalFlow";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -54,255 +54,324 @@ const Checkout = () => {
     }
   }, [watchedDistrict, watchedZone]);
 
-const onSubmit = async (data: CheckoutFormValues) => {
-  try {
-    const selectedDistrict = districts.find((d) => String(d.id) === data.district);
-    const selectedZone = zones.find((z) => String(z.id) === data.zone);
-    if (!selectedDistrict || !selectedZone) throw new Error("Invalid district or zone");
+  const onSubmit = async (data: CheckoutFormValues) => {
+    try {
+      const selectedDistrict = districts.find((d) => String(d.id) === data.district);
+      const selectedZone = zones.find((z) => String(z.id) === data.zone);
+      if (!selectedDistrict || !selectedZone) throw new Error("Invalid district or zone");
 
-    const total = getCartTotal() + shippingCost;
+      const total = getCartTotal() + shippingCost;
 
-    const { user } = useUser();
-    if (!user?.userId) {
-      toast.error("User not logged in.");
-      return;
-    }
+      const { user } = useUser();
+      if (!user?.userId) {
+        toast.error("User not logged in.");
+        return;
+      }
 
-    const payment = await handlePaypalPayment(
+     const { orderId, approvalUrl, step } = await handlePaypalPayment({
+  mode: "create",
+  orderBody: {
+    intent: "CAPTURE",
+    purchase_units: [
       {
-        intent: "CAPTURE",
-        purchase_units: [
-          {
-            amount: {
-              currency_code: "USD",
-              value: total.toFixed(2),
-            },
-          },
-        ],
+        amount: {
+          currency_code: "USD",
+          value: total.toFixed(2),
+        },
       },
-      data.email,
-      cart,
-      user.userId
-    );
+    ],
+  },
+  email: data.email,
+  cart,
+  userId: user.userId,
+});
+      await createPathaoOrder(
+        data,
+        cart,
+        selectedDistrict,
+        selectedZone,
+        total,
+        shippingCost,
+        user.userId,
+        paymentId
+      );
 
-    await createPathaoOrder(
-      data,
-      cart,
-      selectedDistrict,
-      selectedZone,
-      total,
-      shippingCost,
-      user.userId,
-      payment.id
-    );
-
-    toast.success("Order placed successfully!");
-    clearCart();
-    router.push("/success");
-  } catch (err: any) {
-    toast.error(err.message || "Order failed");
-  }
-};
-
+      toast.success("Order placed successfully!");
+      clearCart();
+      router.push("/success");
+    } catch (err: any) {
+      toast.error(err.message || "Order failed");
+    }
+  };
 
   return (
-    <div className="p-4 max-w-xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Checkout</h2>
-
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Name */}
-        <div>
-          <label htmlFor="name" className="block font-semibold mb-1">
-            Name
-          </label>
-          <input
-            id="name"
-            {...register("name")}
-            className={`w-full border rounded px-3 py-2 ${
-              errors.name ? "border-red-500" : "border-gray-300"
-            }`}
-          />
-          {errors.name && (
-            <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
-          )}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+          <p className="mt-2 text-gray-600">Complete your order below</p>
         </div>
 
-        {/* Email */}
-        <div>
-          <label htmlFor="email" className="block font-semibold mb-1">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            {...register("email")}
-            className={`w-full border rounded px-3 py-2 ${
-              errors.email ? "border-red-500" : "border-gray-300"
-            }`}
-          />
-          {errors.email && (
-            <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
-          )}
-        </div>
-
-        {/* Phone */}
-        <div>
-          <label htmlFor="phone" className="block font-semibold mb-1">
-            Phone
-          </label>
-          <input
-            id="phone"
-            type="tel"
-            {...register("phone")}
-            className={`w-full border rounded px-3 py-2 ${
-              errors.phone ? "border-red-500" : "border-gray-300"
-            }`}
-          />
-          {errors.phone && (
-            <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
-          )}
-        </div>
-
-        {/* Address */}
-        <div>
-          <label htmlFor="address" className="block font-semibold mb-1">
-            Address
-          </label>
-          <textarea
-            id="address"
-            {...register("address")}
-            className={`w-full border rounded px-3 py-2 resize-none ${
-              errors.address ? "border-red-500" : "border-gray-300"
-            }`}
-            rows={3}
-          />
-          {errors.address && (
-            <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
-          )}
-        </div>
-
-        {/* District */}
-        <div>
-          <label htmlFor="district" className="block font-semibold mb-1">
-            District
-          </label>
-          <select
-            id="district"
-            {...register("district")}
-            className={`w-full border rounded px-3 py-2 ${
-              errors.district ? "border-red-500" : "border-gray-300"
-            }`}
-            defaultValue=""
-          >
-            <option value="" disabled>
-              Select district
-            </option>
-            {districts.map((district) => (
-              <option key={district.id} value={String(district.id)}>
-                {district.name}
-              </option>
-            ))}
-          </select>
-          {errors.district && (
-            <p className="text-red-500 text-sm mt-1">{errors.district.message}</p>
-          )}
-        </div>
-
-        {/* Zone */}
-        <div>
-          <label htmlFor="zone" className="block font-semibold mb-1">
-            Zone
-          </label>
-          <select
-            id="zone"
-            {...register("zone")}
-            className={`w-full border rounded px-3 py-2 ${
-              errors.zone ? "border-red-500" : "border-gray-300"
-            }`}
-            defaultValue=""
-            disabled={!zones.length}
-          >
-            <option value="" disabled>
-              Select zone
-            </option>
-            {zones.map((zone) => (
-              <option key={zone.id} value={String(zone.id)}>
-                {zone.name}
-              </option>
-            ))}
-          </select>
-          {errors.zone && (
-            <p className="text-red-500 text-sm mt-1">{errors.zone.message}</p>
-          )}
-        </div>
-
-        {/* Shipping Cost (read-only) */}
-        <div>
-          <label className="block font-semibold mb-1">Shipping Cost</label>
-          <input
-            type="text"
-            value={`৳${shippingCost.toFixed(2)}`}
-            readOnly
-            className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Total Amount (read-only) */}
-        <div>
-          <label className="block font-semibold mb-1">Total</label>
-          <input
-            type="text"
-            value={`৳${(getCartTotal() + shippingCost).toFixed(2)}`}
-            readOnly
-            className="w-full border border-gray-300 rounded px-3 py-2 bg-gray-100 cursor-not-allowed"
-          />
-        </div>
-
-        {/* Submit button */}
-        <button
-          type="submit"
-          className="w-full bg-blue-600 text-white font-semibold py-3 rounded hover:bg-blue-700 transition"
-        >
-          Place Order
-        </button>
-      </form>
-
-      {/* Order Summary Section */}
-      <div className="mt-10">
-        <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
-        <div className="border p-4 rounded-md">
-          {cart.map((item) => (
-            <div
-              key={item.product.id}
-              className="flex justify-between mb-2"
-            >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Left Column - Checkout Form */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">Shipping Information</h2>
+            
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+              {/* Name */}
               <div>
-                <p className="font-medium">{item.product.title}</p>
-                <p className="text-sm text-gray-500">
-                  Quantity: {item.quantity}
-                </p>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Full Name *
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  {...register("name")}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.name ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                  placeholder="Enter your full name"
+                />
+                {errors.name && (
+                  <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+                )}
               </div>
-              <p>৳{(item.product.price * item.quantity).toFixed(2)}</p>
-            </div>
-          ))}
-          <hr className="my-2" />
-          <div className="flex justify-between">
-            <p>Subtotal:</p>
-            <p>৳{getCartTotal().toFixed(2)}</p>
+
+              {/* Email */}
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                  Email Address *
+                </label>
+                <input
+                  id="email"
+                  type="email"
+                  {...register("email")}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.email ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                  placeholder="your.email@example.com"
+                />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                )}
+              </div>
+
+              {/* Phone */}
+              <div>
+                <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  {...register("phone")}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.phone ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                  placeholder="+880 1XXX XXXXXX"
+                />
+                {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone.message}</p>
+                )}
+              </div>
+
+              {/* Address */}
+              <div>
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-2">
+                  Complete Address *
+                </label>
+                <textarea
+                  id="address"
+                  {...register("address")}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors resize-none ${
+                    errors.address ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                  rows={3}
+                  placeholder="House/Flat no., Street, Area"
+                />
+                {errors.address && (
+                  <p className="text-red-500 text-sm mt-1">{errors.address.message}</p>
+                )}
+              </div>
+
+              {/* Zip Code */}
+              <div>
+                <label htmlFor="zip" className="block text-sm font-medium text-gray-700 mb-2">
+                  Zip / Postal Code
+                </label>
+                <input
+                  id="zip"
+                  type="text"
+                  {...register("zip")}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.zip ? "border-red-500 bg-red-50" : "border-gray-300"
+                  }`}
+                  placeholder="Enter postal code"
+                />
+                {errors.zip && (
+                  <p className="text-red-500 text-sm mt-1">{errors.zip.message}</p>
+                )}
+              </div>
+
+              {/* District and Zone - Grid Layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* District */}
+                <div>
+                  <label htmlFor="district" className="block text-sm font-medium text-gray-700 mb-2">
+                    District *
+                  </label>
+                  <select
+                    id="district"
+                    {...register("district")}
+                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.district ? "border-red-500 bg-red-50" : "border-gray-300"
+                    }`}
+                    defaultValue=""
+                  >
+                    <option value="" disabled>
+                      Select district
+                    </option>
+                    {districts.map((district) => (
+                      <option key={district.id} value={String(district.id)}>
+                        {district.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.district && (
+                    <p className="text-red-500 text-sm mt-1">{errors.district.message}</p>
+                  )}
+                </div>
+
+                {/* Zone */}
+                <div>
+                  <label htmlFor="zone" className="block text-sm font-medium text-gray-700 mb-2">
+                    Zone *
+                  </label>
+                  <select
+                    id="zone"
+                    {...register("zone")}
+                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                      errors.zone ? "border-red-500 bg-red-50" : "border-gray-300"
+                    }`}
+                    defaultValue=""
+                    disabled={!zones.length}
+                  >
+                    <option value="" disabled>
+                      {!zones.length ? "Select district first" : "Select zone"}
+                    </option>
+                    {zones.map((zone) => (
+                      <option key={zone.id} value={String(zone.id)}>
+                        {zone.name}
+                      </option>
+                    ))}
+                  </select>
+                  {errors.zone && (
+                    <p className="text-red-500 text-sm mt-1">{errors.zone.message}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Shipping Cost Display */}
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700">Shipping Cost:</span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : "Select location"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Total Display */}
+              <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                <div className="flex justify-between items-center">
+                  <span className="text-base font-medium text-gray-800">Total Amount:</span>
+                  <span className="text-xl font-bold text-green-600">
+                    ৳{(getCartTotal() + shippingCost).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Submit button */}
+              <button
+                type="submit"
+                className="w-full bg-blue-600 text-white font-semibold py-4 rounded-lg hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+                disabled={!cart.length || shippingCost === 0}
+              >
+                Place Order - ৳{(getCartTotal() + shippingCost).toFixed(2)}
+              </button>
+            </form>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Estimated Shipping Cost:
-            </label>
-            <p className="mt-1 text-base font-semibold text-indigo-700">
-              {shippingCost ? `৳${shippingCost.toFixed(2)}` : "Calculating..."}
-            </p>
-          </div>
+          {/* Right Column - Order Summary */}
+          <div className="bg-white rounded-lg shadow-sm p-6 h-fit">
+            <h2 className="text-xl font-semibold mb-6 text-gray-800">Order Summary</h2>
+            
+            {cart.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">Your cart is empty</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {/* Cart Items */}
+                <div className="space-y-3">
+                  {cart.map((item) => (
+                    <div
+                      key={item.product.id}
+                      className="flex justify-between items-start p-3 bg-gray-50 rounded-lg"
+                    >
+                      <div className="flex-1">
+                        <h3 className="font-medium text-gray-800 line-clamp-2">
+                          {item.product.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Qty: {item.quantity} × ৳{item.product.price.toFixed(2)}
+                        </p>
+                      </div>
+                      <p className="font-semibold text-gray-800 ml-4">
+                        ৳{(item.product.price * item.quantity).toFixed(2)}
+                      </p>
+                    </div>
+                  ))}
+                </div>
 
-          <div className="flex justify-between font-bold text-lg">
-            <p>Total:</p>
-            <p>৳{(getCartTotal() + shippingCost).toFixed(2)}</p>
+                <hr className="border-gray-200" />
+
+                {/* Pricing Breakdown */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal:</span>
+                    <span>৳{getCartTotal().toFixed(2)}</span>
+                  </div>
+                  
+                  <div className="flex justify-between text-gray-600">
+                    <span>Shipping:</span>
+                    <span>
+                      {shippingCost > 0 ? `৳${shippingCost.toFixed(2)}` : "TBD"}
+                    </span>
+                  </div>
+                </div>
+
+                <hr className="border-gray-200" />
+
+                {/* Final Total */}
+                <div className="flex justify-between items-center text-lg font-bold text-gray-900">
+                  <span>Total:</span>
+                  <span className="text-blue-600">
+                    ৳{(getCartTotal() + shippingCost).toFixed(2)}
+                  </span>
+                </div>
+
+                {/* Security Badge */}
+                <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center text-sm text-green-700">
+                    <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                    Secure checkout with PayPal
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

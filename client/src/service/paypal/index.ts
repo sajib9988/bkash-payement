@@ -28,10 +28,10 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
 };
 
 // ✅ Capture Payment
-export const capturePayment = async (payload: CapturePaymentResponse, userId: string) => {
+export const capturePayment = async (orderId:string, userId: string) => {
   const token = (await cookies()).get("accessToken")?.value;
 
-  const response = await fetch(`${getBaseUrl()}/paypal/order/${payload.orderid}/capture`, {
+  const response = await fetch(`${getBaseUrl()}/paypal/order/${orderId}/capture`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

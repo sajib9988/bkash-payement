@@ -34,6 +34,7 @@ export const useShipping = (cart: any[]) => {
             name: c.city_name,
           }))
         );
+        console.log("Districts loaded successfully", cities);
       } catch {
         toast.error("Failed to load districts");
       }

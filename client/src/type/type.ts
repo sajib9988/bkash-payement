@@ -87,7 +87,8 @@ export interface IEstimatePayload {
 
 
 export interface ICreateOrderPayload {
-        // ✅
+  userId: string;
+  paymentId: string;
   recipient_name: string;
   recipient_phone: string;
   recipient_city: number;        // ✅

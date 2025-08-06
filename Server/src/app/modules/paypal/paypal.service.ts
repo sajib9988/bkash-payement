@@ -24,48 +24,65 @@ console.log("createOrder data server", data);
   return data;
 };
 
-export const capturePayment = async (orderId: string, userId: string, shippingPhone: string) => {
+;
+
+export const capturePayment = async (
+  orderId: string,
+  userId: string,
+  shippingPhone: string
+) => {
   const accessToken = await getAccessToken();
 
-  const result = await fetch(`${process.env.paypal_Base_URL}/v2/checkout/orders/${orderId}/capture`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
+  const response = await fetch(
+    `${process.env.paypal_Base_URL}/v2/checkout/orders/${orderId}/capture`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
     }
-  });
+  );
 
-  const data = await result.json();
+  const data = await response.json();
 
-  if (!result.ok) {
+  if (!response.ok) {
     throw new Error(`Payment capture failed: ${JSON.stringify(data)}`);
   }
 
+  // Extract necessary data
   const buyerInfo = data.payer;
-  const shippingInfo = data.purchase_units[0].shipping;
-  const totalAmount = parseFloat(data.purchase_units[0].amount.value);
+  const shippingInfo = data.purchase_units?.[0]?.shipping;
+  const amount = parseFloat(data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0");
 
-  await prisma.order.create({
+  // Defensive programming: fallback if some data is missing
+  if (!shippingInfo || !buyerInfo) {
+    throw new Error("Missing shipping or buyer info from PayPal response.");
+  }
+
+  // Save Order in DB
+  const savedOrder = await prisma.order.create({
     data: {
       userId: userId,
-      totalAmount: totalAmount,
+      totalAmount: amount,
       shippingName: shippingInfo.name.full_name,
-      shippingPhone: shippingPhone, // Added from request
+      shippingPhone: shippingPhone,
       shippingStreet: shippingInfo.address.address_line_1,
       shippingCity: shippingInfo.address.admin_area_2,
       shippingZip: shippingInfo.address.postal_code,
       shippingCountry: shippingInfo.address.country_code,
-      paymentGateway: 'paypal',
+      paymentGateway: "paypal",
       paypalOrderId: data.id,
       payerId: buyerInfo.payer_id,
       payerEmail: buyerInfo.email_address,
-      payerCountryCode: buyerInfo.address.country_code,
-      status: 'PAID',
+      payerCountryCode: buyerInfo.address?.country_code ?? "N/A", // Optional chaining
+      status: "PAID",
     },
   });
 
-  return data;
+  return savedOrder;
 };
+
 
 export const createInvoice = async (payload: any) => {
   const accessToken = await getAccessToken();
