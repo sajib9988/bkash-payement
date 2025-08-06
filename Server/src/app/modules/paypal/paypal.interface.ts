@@ -1,3 +1,8 @@
+export interface CapturePaymentPayload {
+  userId: string;
+  shippingPhone: string;
+}
+
 // src/types/paypal.types.ts
 export interface CreateOrderBody {
   intent: "CAPTURE" | "AUTHORIZE";

@@ -70,6 +70,12 @@ model Order {
   shippingCity    String
   shippingZip     String
   shippingCountry String
+  paymentGateway  String?       // New field for payment gateway
+  paypalOrderId   String?       @unique // New field for PayPal order ID
+  payerId         String?       // New field for PayPal payer ID
+  payerEmail      String?       // New field for PayPal payer email
+  payerCountryCode String?    // New field for PayPal payer country code
+
 
   user       User        @relation(fields: [userId], references: [id])
   payment    Payment?    @relation(fields: [paymentId], references: [id])

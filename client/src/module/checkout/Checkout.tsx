@@ -12,6 +12,7 @@ import { useShipping } from "./utils/useShipping";
 import { checkoutSchema } from "./utils/CheckOutSchema";
 import { handlePaypalPayment } from "./utils/paypalFlow";
 import { createPathaoOrder } from "./utils/pathaoOrder";
+import { useUser } from "@/context/userContext";
 
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
@@ -61,7 +62,10 @@ const onSubmit = async (data: CheckoutFormValues) => {
 
     const total = getCartTotal() + shippingCost;
 
-    await handlePaypalPayment(
+    // Get the userId from your auth context
+    const { userId} = useUser(); // Replace with your actual auth hook
+
+    const payment = await handlePaypalPayment(
       {
         intent: "CAPTURE",
         purchase_units: [
@@ -74,10 +78,11 @@ const onSubmit = async (data: CheckoutFormValues) => {
         ],
       },
       data.email, // ✅ email
-      cart        // ✅ cart items
+      cart,        // ✅ cart items
+      userId
     );
 
-    await createPathaoOrder(data, cart, selectedDistrict, selectedZone, total, shippingCost);
+    await createPathaoOrder(data, cart, selectedDistrict, selectedZone, total, shippingCost, userId, payment.id);
 
     toast.success("Order placed successfully!");
     clearCart();

@@ -1,3 +1,4 @@
+import { prisma } from "../../middleware/prisma";
 import { CreateOrderBody } from "./paypal.interface";
 import { getAccessToken } from "./utils/PaypalAccessToken";
 
@@ -23,7 +24,7 @@ console.log("createOrder data server", data);
   return data;
 };
 
-export const capturePayment = async (orderId: string) => {
+export const capturePayment = async (orderId: string, userId: string, shippingPhone: string) => {
   const accessToken = await getAccessToken();
 
   const result = await fetch(`${process.env.paypal_Base_URL}/v2/checkout/orders/${orderId}/capture`, {
@@ -39,6 +40,29 @@ export const capturePayment = async (orderId: string) => {
   if (!result.ok) {
     throw new Error(`Payment capture failed: ${JSON.stringify(data)}`);
   }
+
+  const buyerInfo = data.payer;
+  const shippingInfo = data.purchase_units[0].shipping;
+  const totalAmount = parseFloat(data.purchase_units[0].amount.value);
+
+  await prisma.order.create({
+    data: {
+      userId: userId,
+      totalAmount: totalAmount,
+      shippingName: shippingInfo.name.full_name,
+      shippingPhone: shippingPhone, // Added from request
+      shippingStreet: shippingInfo.address.address_line_1,
+      shippingCity: shippingInfo.address.admin_area_2,
+      shippingZip: shippingInfo.address.postal_code,
+      shippingCountry: shippingInfo.address.country_code,
+      paymentGateway: 'paypal',
+      paypalOrderId: data.id,
+      payerId: buyerInfo.payer_id,
+      payerEmail: buyerInfo.email_address,
+      payerCountryCode: buyerInfo.address.country_code,
+      status: 'PAID',
+    },
+  });
 
   return data;
 };

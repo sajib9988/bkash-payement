@@ -8,7 +8,9 @@ export const createPathaoOrder = async (
   selectedDistrict: any,
   selectedZone: any,
   total: number,
-  shippingCost: number
+  shippingCost: number,
+  userId: string,
+  paymentId: string
 ) => {
   const payload: ICreateOrderPayload = {
     recipient_name: data.name,
@@ -27,6 +29,8 @@ export const createPathaoOrder = async (
     merchant_order_id: undefined,   // প্রয়োজনমতো দিতে পারো
     recipient_area: undefined,      // প্রয়োজনমতো দিতে পারো
     special_instruction: undefined, // প্রয়োজনমতো দিতে পারো
+    userId: userId,
+    paymentId: paymentId
   };
 
   const order = await createOrderService(payload);

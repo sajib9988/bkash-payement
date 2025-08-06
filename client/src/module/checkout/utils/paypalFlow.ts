@@ -17,12 +17,13 @@ interface CartItem {
 export const handlePaypalPayment = async (
   orderBody: CreateOrderBody,
   email: string,
-  cart: CartItem[]
+  cart: CartItem[],
+  userId: string
 ) => {
   const order = await createPaypalOrder(orderBody);
   if (!order?.id) throw new Error("Failed to create PayPal order");
-
-  const payment = await capturePayment(order.id);
+ console.log("Order created successfully paypal flow:", order);
+  const payment = await capturePayment(order.id, userId as string);
   if (!payment?.status || payment.status !== "COMPLETED") {
     throw new Error("Payment failed or incomplete");
   }
