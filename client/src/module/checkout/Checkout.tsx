@@ -62,8 +62,11 @@ const onSubmit = async (data: CheckoutFormValues) => {
 
     const total = getCartTotal() + shippingCost;
 
-    // Get the userId from your auth context
-    const { userId} = useUser(); // Replace with your actual auth hook
+    const { user } = useUser();
+    if (!user?.userId) {
+      toast.error("User not logged in.");
+      return;
+    }
 
     const payment = await handlePaypalPayment(
       {
@@ -77,12 +80,21 @@ const onSubmit = async (data: CheckoutFormValues) => {
           },
         ],
       },
-      data.email, // ✅ email
-      cart,        // ✅ cart items
-      userId
+      data.email,
+      cart,
+      user.userId
     );
 
-    await createPathaoOrder(data, cart, selectedDistrict, selectedZone, total, shippingCost, userId, payment.id);
+    await createPathaoOrder(
+      data,
+      cart,
+      selectedDistrict,
+      selectedZone,
+      total,
+      shippingCost,
+      user.userId,
+      payment.id
+    );
 
     toast.success("Order placed successfully!");
     clearCart();
