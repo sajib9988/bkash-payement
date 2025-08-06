@@ -3,6 +3,7 @@ import { getAccessToken } from "./utils/PaypalAccessToken";
 
 export const createOrder = async (payload: CreateOrderBody) => {
   const accessToken = await getAccessToken();
+  console.log('access token form paypal', accessToken);
 
   const result = await fetch(`${process.env.paypal_Base_URL}/v2/checkout/orders`, {
     method: 'POST',
@@ -12,10 +13,10 @@ export const createOrder = async (payload: CreateOrderBody) => {
     },
     body: JSON.stringify(payload),
   });
-
+console.log("createOrder response server", result);
   const data = await result.json();
-
-  if (!result.ok) {
+console.log("createOrder data server", data);
+  if (!result.ok) { 
     throw new Error(`Order creation failed: ${JSON.stringify(data)}`);
   }
 

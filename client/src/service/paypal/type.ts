@@ -1,13 +1,18 @@
 // src/types/paypal.types.ts
 export interface CreateOrderBody {
-  intent: 'CAPTURE' | 'AUTHORIZE';
-  purchase_units: Array<{
+  intent: "CAPTURE" | "AUTHORIZE";
+  purchase_units: {
     amount: {
       currency_code: string;
       value: string;
     };
-  }>;
+  }[];
+  application_context?: {
+    return_url: string;
+    cancel_url: string;
+  };
 }
+
 
 export interface CapturePaymentResponse {
   orderid: string;

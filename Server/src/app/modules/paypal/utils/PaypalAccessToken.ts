@@ -4,7 +4,7 @@ export const getAccessToken = async () => {
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
       Authorization: `Basic ${Buffer.from(
-        `${process.env.client_Id}:${process.env.client_Secret}`
+        `${process.env.paypal_client_id}:${process.env.paypal_client_secret}`
       ).toString("base64")}`,
     },
     body: "grant_type=client_credentials",
