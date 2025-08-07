@@ -67,7 +67,9 @@ export const trackPaypalOrder = async (orderId: string) => {
     throw new Error(`Failed to track order: ${response.statusText}`);
   }
 
-  return await response.json();
+   const result = await response.json(); 
+  console.log("track", result);
+  return result.data; ;
 };
 
 
@@ -87,7 +89,9 @@ export const createPaypalInvoice = async (payload: CreateInvoicePayload) => {
     throw new Error(`Failed to create invoice: ${response.statusText}`);
   }
 
-  return await response.json();
+  const result = await response.json(); 
+  console.log("in", result);
+  return result.data; ;
 };
 
 export const sendPaypalInvoice = async (invoiceId: string) => {
@@ -106,5 +110,7 @@ export const sendPaypalInvoice = async (invoiceId: string) => {
     throw new Error(`Failed to send invoice: ${response.statusText}`);
   }
 
-  return await response.json();
+   const result = await response.json(); 
+  console.log("senfd invoive", result);
+  return result.data; ;
 };
