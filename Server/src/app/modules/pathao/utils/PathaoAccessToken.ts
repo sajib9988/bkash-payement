@@ -37,7 +37,7 @@ let tokenExpiry: number | null = null;
 
 
     accessToken = res.data.access_token;
-    console.log('🔑 Access Token:', accessToken);
+    // console.log('🔑 Access Token:', accessToken);
     tokenExpiry = Date.now() + (res.data.expires_in * 1000); // Convert to milliseconds
     
     return accessToken;

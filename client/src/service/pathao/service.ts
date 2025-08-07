@@ -27,8 +27,8 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
     token,
   });
 
-  console.log("📦 Shipping Estimate Result:", result);
-  console.log("📦 Shipping Estimate Final Price:", result?.data?.data?.final_price || 0);
+  // console.log("📦 Shipping Estimate Result:", result);
+  // console.log("📦 Shipping Estimate Final Price:", result?.data?.data?.final_price || 0);
   return result?.data?.data?.final_price || 0;
 };
 

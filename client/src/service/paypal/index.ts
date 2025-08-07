@@ -15,11 +15,11 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: ` ${token}`, // ✅ FIXED: Must include "Bearer"
+      Authorization: `${token}`, 
     },
     body: JSON.stringify(payload),
   });
-// console.log("createPaypalOrder response", response);
+ console.log("createPaypalOrder response", response);
   if (!response.ok) {
     throw new Error(`Failed to create order: ${response.statusText}`);
   }
@@ -35,7 +35,7 @@ export const capturePayment = async (orderId:string, userId: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-       Authorization: `${token}`, // ✅ FIXED
+      Authorization: ` ${token}`, // ✅ FIXED
     },
     body: JSON.stringify({ userId }),
   });
@@ -93,7 +93,7 @@ export const sendPaypalInvoice = async (invoiceId: string) => {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `${token}`,
+      Authorization: ` ${token}`,
     },
     // body: JSON.stringify({ invoiceId }), // Assuming server expects this
   });

@@ -7,16 +7,30 @@ import catchAsync from '../../utils/catchAsync';
 import { CapturePaymentPayload, CreateInvoicePayload } from './paypal.interface';
 
 export const createPaypalOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await createOrder(req.body);
-  console.log('result form controller', result)
+  try {
+    console.log("✅ /order route hit");
+    console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'PayPal order created successfully',
-    data: result,
-  });
+    const result = await createOrder(req.body);
+
+    res.status(200).json({
+      success: true,
+      message: 'Order created successfully!',
+      data: result,
+    });
+  } catch (err: any) {
+    console.error("❌ Error inside createPaypalOrder:", err.message);
+    console.error(err); // Full stack trace
+
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong in PayPal order creation.",
+      error: err.message,
+    });
+  }
 });
+
+
 
 export const capturePaypalPayment = catchAsync(async (req: Request, res: Response) => {
   const { orderId } = req.params;

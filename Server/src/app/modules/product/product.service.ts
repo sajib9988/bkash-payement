@@ -44,7 +44,7 @@ export const addProduct= async (data: IProductInput, files: Express.Multer.File[
 
 export const getAllProductsFromDB = async () => {
   const products = await prisma.product.findMany();
-  console.log('ppdd', products)
+  // console.log('ppdd', products)
   return products;
 };
 

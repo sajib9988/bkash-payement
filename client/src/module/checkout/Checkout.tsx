@@ -20,7 +20,7 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
   const router = useRouter();
-
+   const { user } = useUser();
   const {
     districts,
     zones,
@@ -62,43 +62,35 @@ const Checkout = () => {
 
       const total = getCartTotal() + shippingCost;
 
-      const { user } = useUser();
+   
       if (!user?.userId) {
         toast.error("User not logged in.");
         return;
       }
 
      const { orderId, approvalUrl, step } = await handlePaypalPayment({
-  mode: "create",
-  orderBody: {
-    intent: "CAPTURE",
-    purchase_units: [
-      {
-        amount: {
-          currency_code: "USD",
-          value: total.toFixed(2),
+        mode: "create",
+        orderBody: {
+          intent: "CAPTURE",
+          purchase_units: [
+            {
+              amount: {
+                currency_code: "USD",
+                value: total.toFixed(2),
+              },
+            },
+          ],
         },
-      },
-    ],
-  },
-  email: data.email,
-  cart,
-  userId: user.userId,
-});
-      await createPathaoOrder(
-        data,
+        email: data.email,
         cart,
-        selectedDistrict,
-        selectedZone,
-        total,
-        shippingCost,
-        user.userId,
-        paymentId
-      );
+        userId: user.userId,
+      });
 
-      toast.success("Order placed successfully!");
-      clearCart();
-      router.push("/success");
+      if (approvalUrl) {
+        window.location.href = approvalUrl;
+      } else {
+        toast.error("Failed to start PayPal payment. Please try again.");
+      }
     } catch (err: any) {
       toast.error(err.message || "Order failed");
     }
