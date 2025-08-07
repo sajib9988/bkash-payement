@@ -14,16 +14,11 @@ export const createOrder = async (payload: CreateOrderBody) => {
     },
     body: JSON.stringify(payload),
   });
-console.log("createOrder response server", result);
+
   const data = await result.json();
 console.log("createOrder data server", data);
   if (!result.ok) {
-    console.error("🔴 PayPal Order Creation Failed:");
-    console.error("Status:", result.status);
-    console.error("Message:", data.message);
-    console.error("Details:", data.details); // important!
-    console.error("Debug ID:", data.debug_id); // optional for support
-    throw new Error(`PayPal error: ${data.message}`);
+   throw new Error(`PayPal error: ${data.message}`);
   }
 
   return data;
@@ -32,14 +27,14 @@ console.log("createOrder data server", data);
 ;
 
 export const capturePayment = async (
-  orderId: string,
+  order_id: string,
   userId: string,
   shippingPhone: string
 ) => {
   const accessToken = await getAccessToken();
 
   const response = await fetch(
-    `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${orderId}/capture`,
+    `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${order_id}/capture`,
     {
       method: "POST",
       headers: {
@@ -48,8 +43,9 @@ export const capturePayment = async (
       },
     }
   );
-
+console.log('response from capturePayment', response);
   const data = await response.json();
+  console.log("capturePayment data server", data);
 
   if (!response.ok) {
     throw new Error(`Payment capture failed: ${JSON.stringify(data)}`);

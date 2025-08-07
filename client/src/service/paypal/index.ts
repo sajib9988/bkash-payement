@@ -24,7 +24,9 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
     throw new Error(`Failed to create order: ${response.statusText}`);
   }
 
-  return await response.json();
+ const result = await response.json(); 
+  console.log("createPaypalOrder result", result);
+  return result.data; // Assuming the response has a 'data' field with the order details
 };
 
 // ✅ Capture Payment
@@ -44,7 +46,9 @@ export const capturePayment = async (orderId:string, userId: string) => {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }
 
-  return await response.json();
+   const result = await response.json(); 
+  console.log("capture result", result);
+  return result.data; ;
 };
 
 

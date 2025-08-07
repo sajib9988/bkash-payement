@@ -37,12 +37,16 @@ export const handlePaypalPayment = async ({
     // ✅ Step 1: Create PayPal Order
     if (!orderBody) throw new Error("Missing order body for creation");
     const order = await createPaypalOrder(orderBody);
+    console.log("🧾 PayPal Order Response:", order);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 
     // ✅ Step 2: Get approval URL
-    const approvalLink = order?.link?.find((l: any) => l.rel === "approve");
-    if (!approvalLink?.href) throw new Error("Approval link not found");
 
+
+    const approvalLink = order?.links?.find((l: any) => l.rel === "approve");
+
+if (!approvalLink?.href) throw new Error("Approval link not found");
+console.log("createPaypalOrder approvalLink", approvalLink);
     return {
       orderId: order.id,
       approvalUrl: approvalLink.href,

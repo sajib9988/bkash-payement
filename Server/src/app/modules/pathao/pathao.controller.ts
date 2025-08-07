@@ -17,7 +17,7 @@ export const estimateShippingCost = catchAsync(async (req: Request, res: Respons
 
 
   const result = await estimateShippingService(finalData);
-  console.log("📦 Shipping Estimate Result:", result);
+  // console.log("📦 Shipping Estimate Result:", result);
   sendResponse(res, {
     statusCode: 200,
     success: true,
