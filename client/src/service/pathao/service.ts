@@ -82,7 +82,7 @@ export const getZoneList = async (city_id: number) => {
     token,
   });
 
-  console.log("✅ Zone List API response:", result?.data?.data || []);
+  // console.log("✅ Zone List API response:", result?.data?.data || []);
   return result?.data?.data || [];
 };
 
