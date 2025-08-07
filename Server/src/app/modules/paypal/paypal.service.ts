@@ -4,7 +4,7 @@ import { getAccessToken } from "./utils/PaypalAccessToken";
 
 export const createOrder = async (payload: CreateOrderBody) => {
   const accessToken = await getAccessToken();
-  console.log('access token form paypal', accessToken);
+  console.log('access token from paypal', accessToken);
 
   const result = await fetch(`${process.env.PAYPAL_BASE_URL}/v2/checkout/orders`, {
     method: 'POST',
@@ -12,13 +12,20 @@ export const createOrder = async (payload: CreateOrderBody) => {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${accessToken}`,
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      application_context: {
+        return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
+      },
+    }),
   });
 
   const data = await result.json();
-console.log("createOrder data server", data);
+  console.log("createOrder data server", data);
+  
   if (!result.ok) {
-   throw new Error(`PayPal error: ${data.message}`);
+    throw new Error(`PayPal error: ${data.message || 'Unknown error'}`);
   }
 
   return data;
