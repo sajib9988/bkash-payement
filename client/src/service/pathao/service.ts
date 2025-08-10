@@ -68,7 +68,7 @@ export const getCityList = async () => {
     method: 'GET',
     token,
   });
-
+console.log("✅ City List API response:", result?.data?.data || []);
   return result?.data?.data || [];
 };
 

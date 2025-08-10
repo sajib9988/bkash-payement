@@ -33,22 +33,33 @@ export const createPaypalOrder = catchAsync(async (req: Request, res: Response) 
 
 
 export const capturePaypalPayment = catchAsync(async (req: Request, res: Response) => {
+  console.log("✅ /capture route hit");
   const { orderId } = req.params;
   const { userId, shippingPhone } = req.body as CapturePaymentPayload;
-
+console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
   if (!userId || !shippingPhone) {
     throw new Error('User ID and Shipping Phone are required');
   }
 
-  const result = await capturePayment(orderId, userId, shippingPhone);
+  try {
+    const result = await capturePayment(orderId, userId, shippingPhone);
 
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'PayPal payment captured successfully',
+      data: result,
+    });
+  } catch (err: any) {
+    console.error("❌ Error inside capturePaypalPayment:", err.message);
+    console.error(err); // Full stack trace
 
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'PayPal payment captured successfully',
-    data:result,
-  });
+    res.status(500).json({
+      success: false,
+      message: "Something went wrong in PayPal payment capture.",
+      error: err.message,
+    });
+  }
 });
 
 export const createPaypalInvoice = catchAsync(async (req: Request, res: Response) => {

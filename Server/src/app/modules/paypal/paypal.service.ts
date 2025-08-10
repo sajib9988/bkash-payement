@@ -17,6 +17,8 @@ export const createOrder = async (payload: CreateOrderBody) => {
       application_context: {
         return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
+        user_action: "PAY_NOW",
+      
       },
     }),
   });
@@ -40,6 +42,7 @@ export const capturePayment = async (
 ) => {
   const accessToken = await getAccessToken();
 
+  // PayPal থেকে Payment Capture
   const response = await fetch(
     `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${order_id}/capture`,
     {
@@ -50,45 +53,75 @@ export const capturePayment = async (
       },
     }
   );
-console.log('response from capturePayment', response);
+
   const data = await response.json();
   console.log("capturePayment data server", data);
 
   if (!response.ok) {
-    throw new Error(`Payment capture failed: ${JSON.stringify(data)}`);
+    throw new Error(
+      `Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`
+    );
   }
 
-  // Extract necessary data
+  // প্রয়োজনীয় ডাটা এক্সট্রাক্ট
+  const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
-  const amount = parseFloat(data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0");
+  const amount = parseFloat(
+    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0"
+  );
 
-  // Defensive programming: fallback if some data is missing
   if (!shippingInfo || !buyerInfo) {
     throw new Error("Missing shipping or buyer info from PayPal response.");
   }
 
-  // Save Order in DB
-  const savedOrder = await prisma.order.create({
-    data: {
-      userId: userId,
-      totalAmount: amount,
-      shippingName: shippingInfo.name.full_name,
-      shippingPhone: shippingPhone,
-      shippingStreet: shippingInfo.address.address_line_1,
-      shippingCity: shippingInfo.address.admin_area_2,
-      shippingZip: shippingInfo.address.postal_code,
-      shippingCountry: shippingInfo.address.country_code,
-      paymentGateway: "paypal",
-      paypalOrderId: data.id,
-      payerId: buyerInfo.payer_id,
-      payerEmail: buyerInfo.email_address,
-      payerCountryCode: buyerInfo.address?.country_code ?? "N/A", // Optional chaining
-      status: "PAID",
-    },
+  // Prisma Transaction শুরু
+  const [newPayment, savedOrder] = await prisma.$transaction([
+    prisma.payment.create({
+      data: {
+        userId,
+        amount,
+        transactionId: paymentId,
+        status: "PAID",
+        paymentGatewayData: data,
+        billingName: buyerInfo.name?.given_name
+          ? `${buyerInfo.name.given_name} ${buyerInfo.name.surname ?? ""}`
+          : null,
+        invoice: "INV-" + Date.now(), 
+        billingEmail: buyerInfo.email_address ?? null,
+        billingPhone: shippingPhone ?? null,
+        billingAddress: shippingInfo.address?.address_line_1 ?? null,
+      },
+    }),
+
+    prisma.order.create({
+      data: {
+        userId,
+        totalAmount: amount,
+        shippingName: shippingInfo.name.full_name,
+        shippingPhone,
+        shippingStreet: shippingInfo.address.address_line_1,
+        shippingCity: shippingInfo.address.admin_area_2,
+        shippingZip: shippingInfo.address.postal_code,
+        shippingCountry: shippingInfo.address.country_code,
+        paymentGateway: "paypal",
+        paypalOrderId: data.id,
+        payerId: buyerInfo.payer_id,
+        payerEmail: buyerInfo.email_address,
+        payerCountryCode: buyerInfo.address?.country_code ?? "N/A",
+        status: "PAID",
+        paymentId: undefined, // এখানে প্রথমে null, পরে ট্রানজেকশনে ভ্যালু সেট হবে
+      },
+    }),
+  ]);
+
+  // Order আপডেট করে Payment ID সেট করা
+  const updatedOrder = await prisma.order.update({
+    where: { id: savedOrder.id },
+    data: { paymentId: newPayment.id },
   });
 
-  return savedOrder;
+  return updatedOrder;
 };
 
 

@@ -30,7 +30,7 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
 };
 
 // ✅ Capture Payment
-export const capturePayment = async (orderId:string, userId: string) => {
+export const capturePayment = async (orderId:string, userId: string,  shippingPhone:string) => {
   const token = (await cookies()).get("accessToken")?.value;
 
   const response = await fetch(`${getBaseUrl()}/paypal/order/${orderId}/capture`, {
@@ -39,9 +39,10 @@ export const capturePayment = async (orderId:string, userId: string) => {
       'Content-Type': 'application/json',
       Authorization: ` ${token}`, // ✅ FIXED
     },
-    body: JSON.stringify({ userId }),
+    body: JSON.stringify({ userId, shippingPhone }), // ✅ FIXED
   });
 
+  console.log("capturePayment response", response);
   if (!response.ok) {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }

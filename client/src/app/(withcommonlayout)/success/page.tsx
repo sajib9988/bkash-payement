@@ -1,32 +1,41 @@
-"use client";
+// "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+// import { useSearchParams, useRouter } from "next/navigation";
+// import { useEffect } from "react";
+// import { toast } from "sonner";
+// import { capturePayment } from "@/service/paypal"; // client-side call
 
-const PaymentSuccess = () => {
-  const router = useRouter();
+// const PaypalSuccessPage = () => {
+//   const searchParams = useSearchParams();
+//   const router = useRouter();
 
-  useEffect(() => {
-    // Optional: you can validate payment again via IPN if needed
-    console.log("Payment successful. Redirected from SSLCommerz.");
-  }, []);
+//   useEffect(() => {
+//     const orderId = searchParams.get("token");
+//     const userId = localStorage.getItem("userId"); // or get from context
 
-  return (
-    <div className="flex flex-col items-center justify-center h-screen text-center">
-      <h1 className="text-3xl font-bold text-green-600 mb-4">
-        ✅ Payment Successful!
-      </h1>
-      <p className="text-gray-600 mb-6">
-        Thank you for your purchase. You can now enjoy your content.
-      </p>
-      <button
-        className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-        onClick={() => router.push("/")}
-      >
-        Go to Home
-      </button>
-    </div>
-  );
-};
+//     if (!orderId || !userId) return;
 
-export default PaymentSuccess;
+//     const confirm = async () => {
+//       try {
+//         const result = await capturePayment(orderId, userId);
+//         console.log("✅ Payment Done:", result);
+
+//         toast.success("Payment successful!");
+//         router.push("/thank-you"); // ✅ Redirect after payment
+//       } catch (err: any) {
+//         console.error(err);
+//         toast.error("Payment failed. Try again.");
+//       }
+//     };
+
+//     confirm();
+//   }, []);
+
+//   return (
+//     <div className="text-center mt-20">
+//       <h1 className="text-xl font-semibold">Confirming your payment...</h1>
+//     </div>
+//   );
+// };
+
+// export default PaypalSuccessPage;

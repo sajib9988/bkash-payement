@@ -23,6 +23,7 @@ interface PaypalFlowProps {
   email: string;
   cart: CartItem[];
   userId: string;
+  shippingPhone?: string; // Optional, used in "capture"
 }
 
 export const handlePaypalPayment = async ({
@@ -32,6 +33,7 @@ export const handlePaypalPayment = async ({
   email,
   cart,
   userId,
+  shippingPhone,
 }: PaypalFlowProps) => {
   if (mode === "create") {
     // ✅ Step 1: Create PayPal Order
@@ -57,7 +59,7 @@ console.log("createPaypalOrder approvalLink", approvalLink);
   if (mode === "capture") {
     // ✅ Step 3: Capture Payment
     if (!orderId) throw new Error("Missing orderId for capture");
-    const payment = await capturePayment(orderId, userId);
+    const payment = await capturePayment(orderId, userId, shippingPhone!);
     if (!payment?.status || payment.status !== "COMPLETED") {
       throw new Error("Payment capture failed");
     }

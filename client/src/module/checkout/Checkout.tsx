@@ -14,6 +14,8 @@ import { checkoutSchema } from "./utils/CheckOutSchema";
 import { createPathaoOrder } from "./utils/pathaoOrder";
 import { useUser } from "@/context/userContext";
 import { handlePaypalPayment } from "./utils/paypalFlow";
+import { ICreateOrderPayload } from "@/type/type";
+import { createOrderService } from "@/service/pathao/service";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -62,13 +64,13 @@ const Checkout = () => {
 
       const total = getCartTotal() + shippingCost;
 
-   
       if (!user?.userId) {
         toast.error("User not logged in.");
         return;
       }
-
-     const { orderId, approvalUrl, step } = await handlePaypalPayment({
+localStorage.setItem("userId", user.userId)
+localStorage.setItem("shippingPhone", data.phone);
+      const { orderId, approvalUrl, step } = await handlePaypalPayment({
         mode: "create",
         orderBody: {
           intent: "CAPTURE",
@@ -95,6 +97,89 @@ const Checkout = () => {
       toast.error(err.message || "Order failed");
     }
   };
+
+  useEffect(() => {
+    const capturePaypalOrder = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const paypalOrderId = params.get("token");
+      const payerId = params.get("PayerID");
+
+      if (paypalOrderId && payerId && user?.userId) {
+        try {
+          toast.loading("Completing PayPal payment...");
+          const result = await handlePaypalPayment({
+            mode: "capture",
+            orderId: paypalOrderId,
+            email: user.email, // Assuming user.email is available
+            cart, // Pass cart for invoice creation
+            userId: user.userId,
+          });
+
+          if (result?.step === "captured") {
+            toast.dismiss();
+            toast.success("Payment completed successfully!");
+
+ const selectedDistrict = districts.find(d => String(d.id) === watchedDistrict);
+  const selectedZone = zones.find(z => String(z.id) === watchedZone);
+
+  const orderPayload: ICreateOrderPayload = {
+    userId: user.userId,
+    paymentId: result.payment,
+    recipient_name: localStorage.getItem("shippingName") || "",
+    recipient_phone: localStorage.getItem("shippingPhone") || "",
+    recipient_city: selectedDistrict?.id || 0,
+    recipient_zone: selectedZone?.id || 0,
+    recipient_address: localStorage.getItem("shippingAddress") || "",
+    item_type: 2,
+    item_quantity: cart.length,
+    item_weight: 500,
+    delivery_type: 1,
+    amount_to_collect: 0,
+    item_description: cart.map(c => c.product).join(", "),
+    shipping_cost: shippingCost,
+    paymentMethod: "PayPal",
+    merchant_order_id: crypto.randomUUID(),
+    special_instruction: ""
+  };
+
+  try {
+    await createOrderService(orderPayload);
+    toast.success("Pathao order created successfully!");
+    clearCart();
+    router.push("/checkout/success");
+  } catch (err) {
+    toast.error("Pathao order creation failed!");
+    console.error(err);
+  }
+
+
+
+
+
+            clearCart(); // Clear cart after successful payment
+            router.push("/checkout/success"); // Redirect to success page
+          } else {
+            toast.dismiss();
+            toast.error("Payment capture failed. Please try again.");
+          }
+        } catch (err: any) {
+          toast.dismiss();
+          console.error("PayPal capture error:", err);
+          toast.error(err.message || "Failed to complete PayPal payment.");
+        } finally {
+          // Clean up URL parameters to prevent re-triggering on refresh
+          const newUrl = new URL(window.location.href);
+          newUrl.searchParams.delete("token");
+          newUrl.searchParams.delete("PayerID");
+          window.history.replaceState({}, document.title, newUrl.toString());
+        }
+      }
+    };
+
+    if (user?.userId) { // Ensure user is loaded before attempting capture
+      capturePaypalOrder();
+    }
+  }, [router, cart, clearCart, user]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

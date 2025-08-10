@@ -15,6 +15,8 @@ export interface CreateOrderBody {
   application_context?: {
     return_url: string;
     cancel_url: string;
+    user_action?: "PAY_NOW" | "CONTINUE";
+
   };
 }
 
