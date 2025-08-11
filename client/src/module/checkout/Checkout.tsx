@@ -11,11 +11,12 @@ import * as z from "zod";
 import { useShipping } from "./utils/useShipping";
 import { checkoutSchema } from "./utils/CheckOutSchema";
 
-import { createPathaoOrder } from "./utils/pathaoOrder";
+
 import { useUser } from "@/context/userContext";
 import { handlePaypalPayment } from "./utils/paypalFlow";
 import { ICreateOrderPayload } from "@/type/type";
 import { createOrderService } from "@/service/pathao/service";
+import { createPathaoOrder } from "./utils/pathaoOrder";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -122,28 +123,34 @@ localStorage.setItem("shippingPhone", data.phone);
  const selectedDistrict = districts.find(d => String(d.id) === watchedDistrict);
   const selectedZone = zones.find(z => String(z.id) === watchedZone);
 
-  const orderPayload: ICreateOrderPayload = {
-    userId: user.userId,
-    paymentId: result.payment,
-    recipient_name: localStorage.getItem("shippingName") || "",
-    recipient_phone: localStorage.getItem("shippingPhone") || "",
-    recipient_city: selectedDistrict?.id || 0,
-    recipient_zone: selectedZone?.id || 0,
-    recipient_address: localStorage.getItem("shippingAddress") || "",
-    item_type: 2,
-    item_quantity: cart.length,
-    item_weight: 500,
-    delivery_type: 1,
-    amount_to_collect: 0,
-    item_description: cart.map(c => c.product).join(", "),
-    shipping_cost: shippingCost,
-    paymentMethod: "PayPal",
-    merchant_order_id: crypto.randomUUID(),
-    special_instruction: ""
-  };
+const orderPayload: ICreateOrderPayload = {
+  userId: user.userId,
+  paymentId: result.payment,
+  recipient_name: watch("name"), // form er naam
+  recipient_phone: watch("phone"), // form er phone
+  recipient_city: selectedDistrict?.id || 0,
+  recipient_zone: selectedZone?.id || 0,
+  recipient_address: watch("address"), // form er address
+  item_type: 2,
+  item_quantity: cart.length,
+  item_weight: 0.5,
+  delivery_type: 1,
+  amount_to_collect: 0,
+  item_description: cart.map(c => c.product).join(", "),
+  shipping_cost: shippingCost,
+  paymentMethod: "PayPal",
+  merchant_order_id: crypto.randomUUID(),
+  
+};
+
 
   try {
-    await createOrderService(orderPayload);
+   const resss=  await createPathaoOrder(orderPayload);
+   console.log("Pathao order created successfully:", resss);
+  
+    localStorage.removeItem("shippingPhone");
+    localStorage.removeItem("shippingAddress");
+    localStorage.removeItem("userId");
     toast.success("Pathao order created successfully!");
     clearCart();
     router.push("/checkout/success");

@@ -2,16 +2,7 @@ import { ICreateOrderPayload } from "@/type/type"; // অবশ্যই সঠ�
 import { createOrderService } from "@/service/pathao/service";
 import { calculateWeight, calculateTotalQuantity, getItemDescription } from "./calculateShipping";
 
-export const createPathaoOrder = async (
-  data: any,
-  cart: any[],
-  selectedDistrict: any,
-  selectedZone: any,
-  total: number,
-  shippingCost: number,
-  userId: string,
-  paymentId: string
-) => {
+export const createPathaoOrder = async () => {
   const payload: ICreateOrderPayload = {
     recipient_name: data.name,
     recipient_phone: data.phone,
