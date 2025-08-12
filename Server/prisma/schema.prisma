@@ -68,6 +68,7 @@ model Order {
   shippingPhone   String
   shippingStreet  String
   shippingCity    String
+  shippingZone    String?       // New field for shipping zone
   shippingZip     String
   shippingCountry String
   paymentGateway  String?       // New field for payment gateway

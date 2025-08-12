@@ -39,7 +39,7 @@ export const createOrderService = async (payload: ICreateOrderPayload) => {
 
   const result = await fetchWrapper(url, {
     method: 'POST',
-    body: payload,
+    body: JSON.stringify(payload),
     token,
   });
 

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { ICreateOrderPayload, IEstimatePayload } from "./pathao.interface";
+import { City } from "./pathao.type";
 import { fetchWithAuth } from "./utils/Fetcher";
 
 export const getStoreInfoService = async () => {
@@ -7,7 +8,7 @@ export const getStoreInfoService = async () => {
   return await fetchWithAuth(url);
 };
 
-export const getCityListService = async () => {
+export const getCityListService = async (): Promise<{ data: City[] }> => {
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`;
   return await fetchWithAuth(url);
 };

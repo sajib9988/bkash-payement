@@ -123,41 +123,44 @@ localStorage.setItem("shippingPhone", data.phone);
  const selectedDistrict = districts.find(d => String(d.id) === watchedDistrict);
   const selectedZone = zones.find(z => String(z.id) === watchedZone);
 
-const orderPayload: ICreateOrderPayload = {
-  userId: user.userId,
-  paymentId: result.payment,
-  recipient_name: watch("name"), // form er naam
-  recipient_phone: watch("phone"), // form er phone
-  recipient_city: selectedDistrict?.id || 0,
-  recipient_zone: selectedZone?.id || 0,
-  recipient_address: watch("address"), // form er address
-  item_type: 2,
-  item_quantity: cart.length,
-  item_weight: 0.5,
-  delivery_type: 1,
-  amount_to_collect: 0,
-  item_description: cart.map(c => c.product).join(", "),
-  shipping_cost: shippingCost,
-  paymentMethod: "PayPal",
-  merchant_order_id: crypto.randomUUID(),
-  
-};
+if (selectedDistrict && selectedZone) {
+              if (selectedDistrict && selectedZone) {
+              const orderPayload = {
+                data: {
+                  name: watch("name"),
+                  phone: watch("phone"),
+                  address: watch("address"),
+                },
+                selectedDistrict: selectedDistrict,
+                selectedZone: selectedZone,
+                cart: cart,
+                total: getCartTotal() + shippingCost,
+                shippingCost: shippingCost,
+                userId: user.userId,
+                paymentId: result.payment,
+                paymentMethod: "PayPal",
+              };
 
+              try {
+                const resss = await createPathaoOrder(orderPayload);
+                console.log("Pathao order created successfully:", resss);
 
-  try {
-   const resss=  await createPathaoOrder(orderPayload);
-   console.log("Pathao order created successfully:", resss);
-  
-    localStorage.removeItem("shippingPhone");
-    localStorage.removeItem("shippingAddress");
-    localStorage.removeItem("userId");
-    toast.success("Pathao order created successfully!");
-    clearCart();
-    router.push("/checkout/success");
-  } catch (err) {
-    toast.error("Pathao order creation failed!");
-    console.error(err);
-  }
+                localStorage.removeItem("shippingPhone");
+                localStorage.removeItem("shippingAddress");
+                localStorage.removeItem("userId");
+                toast.success("Pathao order created successfully!");
+                clearCart();
+                router.push("/checkout/success");
+              } catch (err) {
+                toast.error("Pathao order creation failed!");
+                console.error(err);
+              }
+            } else {
+              toast.error("District or Zone not selected");
+            }
+            } else {
+              toast.error("Selected district or zone is not valid");
+            }
 
 
 

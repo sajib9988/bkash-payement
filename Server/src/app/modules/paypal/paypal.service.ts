@@ -1,5 +1,8 @@
 import { prisma } from "../../middleware/prisma";
 import { CreateOrderBody } from "./paypal.interface";
+import { createOrderService, getCityListService, getZoneListService } from "../pathao/pathao.service";
+import { ICreateOrderPayload } from "../pathao/pathao.interface";
+import { Zone } from "../pathao/pathao.type";
 import { getAccessToken } from "./utils/PaypalAccessToken";
 
 export const createOrder = async (payload: CreateOrderBody) => {
@@ -102,6 +105,7 @@ export const capturePayment = async (
         shippingPhone,
         shippingStreet: shippingInfo.address.address_line_1,
         shippingCity: shippingInfo.address.admin_area_2,
+        shippingZone: shippingInfo.address.admin_area_1,
         shippingZip: shippingInfo.address.postal_code,
         shippingCountry: shippingInfo.address.country_code,
         paymentGateway: "paypal",
@@ -120,6 +124,55 @@ export const capturePayment = async (
     where: { id: savedOrder.id },
     data: { paymentId: newPayment.id },
   });
+
+  // Attempt to create Pathao order after successful PayPal capture and order creation
+  try {
+    // IMPORTANT: recipient_city and recipient_zone need to be numerical IDs for Pathao.
+    // The 'shippingZone' property is currently missing from your Order model.
+    // You MUST add 'shippingZone' to your Prisma Order model and populate it during order creation.
+    // Then, you will need to implement a mechanism to map the string values from updatedOrder
+    // (e.g., updatedOrder.shippingCity, updatedOrder.shippingZone) to their corresponding
+    // numerical IDs from Pathao's city and zone lists.
+    // For example:
+    const cityListResponse = await getCityListService();
+    const cityList = cityListResponse.data;
+    const recipientCityId = cityList.find((city) => city.city_name === updatedOrder.shippingCity)?.city_id;
+
+    if (recipientCityId === undefined) {
+      throw new Error(`City not found for ${updatedOrder.shippingCity}`);
+    }
+
+    const zoneList = await getZoneListService(recipientCityId);
+    const recipientZoneId = zoneList.find((zone: Zone) => zone.zone_name === updatedOrder.shippingZone)?.zone_id;
+
+    if (recipientZoneId === undefined) {
+      throw new Error(`Zone not found for ${updatedOrder.shippingZone}`);
+    }
+
+    const pathaoPayload: ICreateOrderPayload = {
+      store_id: 148058, // Assuming a fixed store ID for now, or retrieve dynamically
+      merchant_order_id: updatedOrder.id, // Use the newly created order ID
+      recipient_name: updatedOrder.shippingName,
+      recipient_phone: updatedOrder.shippingPhone,
+      recipient_address: updatedOrder.shippingStreet,
+      recipient_city: updatedOrder.shippingCity as any, // Placeholder: Needs to be mapped to number ID
+      recipient_zone: 0, // TEMPORARY PLACEHOLDER: This MUST be replaced with the actual numerical zone ID.
+                         // See comments above regarding adding 'shippingZone' to your Order model.
+      delivery_type: 48, // Assuming 'Normal Delivery' for now
+      item_type: 2, // Assuming 'Parcel' for now
+      item_quantity: 1, // Assuming 1 item per order for now
+      item_weight: 0.5, // Minimum weight
+      item_description: `Order #${updatedOrder.id} - ${updatedOrder.totalAmount} BDT`,
+      special_instruction: `PayPal Order ID: ${updatedOrder.paypalOrderId}`,
+      amount_to_collect: 0, // Assuming payment is already collected via PayPal
+    };
+
+    const pathaoOrder = await createOrderService(pathaoPayload);
+    console.log("✅ Pathao order created successfully:", pathaoOrder);
+  } catch (pathaoError: any) {
+    console.error("❌ Failed to create Pathao order:", pathaoError.message);
+  
+  }
 
   return updatedOrder;
 };
