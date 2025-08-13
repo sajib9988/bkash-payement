@@ -45,7 +45,7 @@ export const capturePayment = async (
 ) => {
   const accessToken = await getAccessToken();
 
-  // PayPal থেকে Payment Capture
+  // 1️⃣ PayPal থেকে Payment Capture
   const response = await fetch(
     `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${order_id}/capture`,
     {
@@ -66,7 +66,7 @@ export const capturePayment = async (
     );
   }
 
-  // প্রয়োজনীয় ডাটা এক্সট্রাক্ট
+  // 2️⃣ প্রয়োজনীয় ডাটা এক্সট্রাক্ট
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
@@ -78,9 +78,10 @@ export const capturePayment = async (
     throw new Error("Missing shipping or buyer info from PayPal response.");
   }
 
-  // Prisma Transaction শুরু
-  const [newPayment, savedOrder] = await prisma.$transaction([
-    prisma.payment.create({
+  // 3️⃣ Transaction: Payment create + Draft order update
+  const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
+    // Payment create
+    const payment = await tx.payment.create({
       data: {
         userId,
         amount,
@@ -90,98 +91,103 @@ export const capturePayment = async (
         billingName: buyerInfo.name?.given_name
           ? `${buyerInfo.name.given_name} ${buyerInfo.name.surname ?? ""}`
           : null,
-        invoice: "INV-" + Date.now(), 
+        invoice: "INV-" + Date.now(),
         billingEmail: buyerInfo.email_address ?? null,
         billingPhone: shippingPhone ?? null,
         billingAddress: shippingInfo.address?.address_line_1 ?? null,
       },
-    }),
+    });
 
-    prisma.order.create({
-      data: {
-        userId,
-        totalAmount: amount,
-        shippingName: shippingInfo.name.full_name,
-        shippingPhone,
-        shippingStreet: shippingInfo.address.address_line_1,
-        shippingCity: shippingInfo.address.admin_area_2,
-        shippingZone: shippingInfo.address.admin_area_1,
-        shippingZip: shippingInfo.address.postal_code,
-        shippingCountry: shippingInfo.address.country_code,
-        paymentGateway: "paypal",
-        paypalOrderId: data.id,
-        payerId: buyerInfo.payer_id,
-        payerEmail: buyerInfo.email_address,
-        payerCountryCode: buyerInfo.address?.country_code ?? "N/A",
-        status: "PAID",
-        paymentId: undefined, // এখানে প্রথমে null, পরে ট্রানজেকশনে ভ্যালু সেট হবে
-      },
-    }),
-  ]);
-console.log("New Payment created:", newPayment);
-console.log("New Order created:", savedOrder);
-  // Order আপডেট করে Payment ID সেট করা
-  const updatedOrder = await prisma.order.update({
-    where: { id: savedOrder.id },
-    data: { paymentId: newPayment.id },
+    // Draft order খুঁজে বের করা
+    let order = await tx.order.findFirst({
+      where: { userId, status: { in: ['DRAFT', 'PENDING'] } }
+    });
+
+    if (order) {
+      order = await tx.order.update({
+        where: { id: order.id },
+        data: {
+          totalAmount: amount,
+          shippingName: shippingInfo.name.full_name,
+          shippingPhone,
+          shippingStreet: shippingInfo.address.address_line_1,
+          shippingCity: shippingInfo.address.admin_area_2,
+          shippingZone: shippingInfo.address.admin_area_1,
+          shippingZip: shippingInfo.address.postal_code,
+          shippingCountry: shippingInfo.address.country_code,
+          paymentGateway: "paypal",
+          paypalOrderId: data.id,
+          payerId: buyerInfo.payer_id,
+          payerEmail: buyerInfo.email_address,
+          payerCountryCode: buyerInfo.address?.country_code ?? "N/A",
+          status: "PAID",
+          paymentId: payment.id
+        }
+      });
+    } else {
+      order = null; // Draft না থাকলে নতুন order হবে না
+    }
+
+    return [payment, order];
   });
 
-  try {
+  console.log("✅ New Payment created:", newPayment);
+  console.log("✅ Order updated:", updatedOrder);
 
-    const cityListResponse = await getCityListService();
+  // 4️⃣ Pathao order create চেষ্টা করবে (Order থাকলেই)
+  if (updatedOrder) {
+    try {
+      const cityListResponse = await getCityListService();
+      const cityList: City[] = cityListResponse.data.data;
+      console.log("City List from server:", cityList);
 
-const cityList: City[] = cityListResponse.data.data;
-console.log("City List from server:", cityList);
+      const recipientCityId = cityList.find(
+        (city: City) =>
+          city.city_name.trim().toLowerCase() === updatedOrder.shippingCity.trim().toLowerCase()
+      )?.city_id;
 
-const recipientCityId = cityList.find(
-  (city: City) =>
-    city.city_name.trim().toLowerCase() === updatedOrder.shippingCity.trim().toLowerCase()
-)?.city_id;
+      if (!recipientCityId) {
+        throw new Error(`City not found for ${updatedOrder.shippingCity}`);
+      }
 
-if (!recipientCityId) {
-  throw new Error(`City not found for ${updatedOrder.shippingCity}`);
-}
+      const zoneListObject = await getZoneListService(recipientCityId);
+      const zoneList: Zone[] = zoneListObject.data.data;
+      const recipientZoneId = zoneList.find(
+        (zone: Zone) =>
+          zone.zone_name.trim().toLowerCase() === updatedOrder.shippingZone!.trim().toLowerCase()
+      )?.zone_id;
 
-// zoneList কে Zone[] টাইপ হিসেবে ডিফাইন করা
-const zoneListObject = await getZoneListService(recipientCityId);
-const zoneList: Zone[] = zoneListObject.data.data;
-const recipientZoneId = zoneList.find(
-  (zone: Zone) =>
-    zone.zone_name.trim().toLowerCase() === updatedOrder.shippingZone!.trim().toLowerCase()
-)?.zone_id;
+      if (!recipientZoneId) {
+        throw new Error(`Zone not found for ${updatedOrder.shippingZone}`);
+      }
 
+      const pathaoPayload: ICreateOrderPayload = {
+        store_id: 148058,
+        merchant_order_id: updatedOrder.id,
+        recipient_name: updatedOrder.shippingName,
+        recipient_phone: updatedOrder.shippingPhone,
+        recipient_address: updatedOrder.shippingStreet,
+        recipient_city: recipientCityId,
+        recipient_zone: recipientZoneId,
+        delivery_type: 48,
+        item_type: 2,
+        item_quantity: 1,
+        item_weight: 0.5,
+        item_description: `Order #${updatedOrder.id} - ${updatedOrder.totalAmount} BDT`,
+        special_instruction: `PayPal Order ID: ${updatedOrder.paypalOrderId}`,
+        amount_to_collect: 0,
+      };
 
-if (!recipientZoneId) {
-  throw new Error(`Zone not found for  ${updatedOrder.shippingZone}`);
-}
-
-    const pathaoPayload: ICreateOrderPayload = {
-      store_id: 148058, // Assuming a fixed store ID for now, or retrieve dynamically
-      merchant_order_id: updatedOrder.id, // Use the newly created order ID
-      recipient_name: updatedOrder.shippingName,
-      recipient_phone: updatedOrder.shippingPhone,
-      recipient_address: updatedOrder.shippingStreet,
-      recipient_city: recipientCityId, // Placeholder: Needs to be mapped to number ID
-      recipient_zone: recipientZoneId, // TEMPORARY PLACEHOLDER: This MUST be replaced with the actual numerical zone ID.
-                         // See comments above regarding adding 'shippingZone' to your Order model.
-      delivery_type: 48, // Assuming 'Normal Delivery' for now
-      item_type: 2, // Assuming 'Parcel' for now
-      item_quantity: 1, // Assuming 1 item per order for now
-      item_weight: 0.5, // Minimum weight
-      item_description: `Order #${updatedOrder.id} - ${updatedOrder.totalAmount} BDT`,
-      special_instruction: `PayPal Order ID: ${updatedOrder.paypalOrderId}`,
-      amount_to_collect: 0, // Assuming payment is already collected via PayPal
-    };
-
-    const pathaoOrder = await createOrderService(pathaoPayload);
-    console.log("✅ Pathao order created successfully:", pathaoOrder);
-  } catch (pathaoError: any) {
-    console.error("❌ Failed to create Pathao order:", pathaoError.message);
-  
+      const pathaoOrder = await createOrderService(pathaoPayload);
+      console.log("✅ Pathao order created successfully:", pathaoOrder);
+    } catch (pathaoError: any) {
+      console.error("❌ Failed to create Pathao order:", pathaoError.message);
+    }
   }
 
-  return updatedOrder;
+  return updatedOrder || newPayment;
 };
+
 
 
 export const createInvoice = async (payload: any) => {
