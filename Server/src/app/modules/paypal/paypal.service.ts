@@ -118,7 +118,8 @@ export const capturePayment = async (
       },
     }),
   ]);
-
+console.log("New Payment created:", newPayment);
+console.log("New Order created:", savedOrder);
   // Order আপডেট করে Payment ID সেট করা
   const updatedOrder = await prisma.order.update({
     where: { id: savedOrder.id },
