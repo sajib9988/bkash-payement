@@ -39,7 +39,7 @@ export const handlePaypalPayment = async ({
     // ✅ Step 1: Create PayPal Order
     if (!orderBody) throw new Error("Missing order body for creation");
     if (!orderId) throw new Error("Missing orderId for creation"); // Add this check
-    const order = await createPaypalOrder(orderBody, orderId); // Pass orderId here
+    const order = await createPaypalOrder(orderBody); // Pass orderId here
     console.log("🧾 PayPal Order Response:", order);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 

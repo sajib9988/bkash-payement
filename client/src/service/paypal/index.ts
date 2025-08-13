@@ -8,7 +8,7 @@ const getBaseUrl = () => {
 };
 
 // ✅ Create Order
-export const createPaypalOrder = async (payload: CreateOrderBody, orderId: string) => {
+export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
   const token = (await cookies()).get("accessToken")?.value;
 
   const response = await fetch(`${getBaseUrl()}/paypal/order`, {
@@ -17,7 +17,7 @@ export const createPaypalOrder = async (payload: CreateOrderBody, orderId: strin
       'Content-Type': 'application/json',
       Authorization: `${token}`, 
     },
-    body: JSON.stringify({ ...payload, orderId }),
+    body: JSON.stringify({ ...payload }),
   });
  console.log("createPaypalOrder response", response);
   if (!response.ok) {
