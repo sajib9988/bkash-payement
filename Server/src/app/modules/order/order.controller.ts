@@ -6,6 +6,7 @@ import { OrderService } from './order.service';
 
 const createDraftOrder = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderService.createDraftOrder(req.body);
+  console.log('Draft order created CONTROLLER:', result);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,

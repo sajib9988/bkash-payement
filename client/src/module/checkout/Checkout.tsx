@@ -71,23 +71,26 @@ const Checkout = () => {
         return;
       }
 
-      const draftOrderPayload = {
-        shippingInfo: {
-          name: data.name,
-          phone: data.phone,
-          address: data.address,
-          district: selectedDistrict.name,
-          zone: selectedZone.name,
-          zip: data.zip,
-        },
-        cartInfo: cart.map(item => ({
-          productId: item.product.id,
-          quantity: item.quantity,
-          price: item.product.price,
-        })),
-        totalAmount: total,
-        userId: user.userId,
-      };
+   const draftOrderPayload = {
+  shippingInfo: {
+    name: data.name,
+    phone: data.phone,
+    address: data.address,
+    district: selectedDistrict.name,
+    zone: selectedZone.name,
+    zip: data.zip,
+    pathaoRecipientCityId: selectedDistrict.id, // ✅
+    pathaoRecipientZoneId: selectedZone.id     // ✅
+  },
+  cartInfo: cart.map(item => ({
+    productId: item.product.id,
+    quantity: item.quantity,
+    price: item.product.price,
+  })),
+  totalAmount: total,
+  userId: user.userId,
+};
+
 
       const draftOrder = await createDraftOrderService(draftOrderPayload);
       const orderId = draftOrder.orderId;

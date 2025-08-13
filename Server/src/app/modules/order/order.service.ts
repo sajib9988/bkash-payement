@@ -3,6 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const createDraftOrder = async (payload: any) => {
+  console.log("Payload received in createDraftOrder:", payload);
   const { shippingInfo, cartInfo, totalAmount, userId } = payload;
 
   const result = await prisma.order.create({
@@ -16,6 +17,8 @@ const createDraftOrder = async (payload: any) => {
       shippingCity: shippingInfo.district,
       shippingZone: shippingInfo.zone,
       shippingZip: shippingInfo.zip,
+      pathaoRecipientCityId: shippingInfo.pathaoRecipientCityId,
+      pathaoRecipientZoneId: shippingInfo.pathaoRecipientZoneId, 
       orderItems: {
         create: cartInfo.map((item: any) => ({
           productId: item.productId,
@@ -28,7 +31,7 @@ const createDraftOrder = async (payload: any) => {
       orderItems: true,
     },
   });
-
+console.log('Draft order created:', result);
   return result;
 };
 

@@ -98,9 +98,9 @@ export const capturePayment = async (
       },
     });
 
-    // Draft order খুঁজে বের করা
+    // Draft order খুঁজে বের করা (এবং সেখানে districtId / zoneId আগেই save থাকবে)
     let order = await tx.order.findFirst({
-      where: { userId, status: { in: ['DRAFT', 'PENDING'] } }
+      where: { userId, status: { in: ["DRAFT", "PENDING"] } },
     });
 
     if (order) {
@@ -121,11 +121,14 @@ export const capturePayment = async (
           payerEmail: buyerInfo.email_address,
           payerCountryCode: buyerInfo.address?.country_code ?? "N/A",
           status: "PAID",
-          paymentId: payment.id
-        }
+          paymentId: payment.id,
+          // 🆕 নিশ্চিত করলাম এগুলো ফ্রন্টএন্ড থেকে draft order create করার সময়ই আসবে
+          pathaoRecipientCityId: order.pathaoRecipientCityId,
+          pathaoRecipientZoneId: order.pathaoRecipientZoneId,
+        },
       });
     } else {
-      order = null; // Draft না থাকলে নতুন order হবে না
+      order = null;
     }
 
     return [payment, order];
@@ -133,32 +136,14 @@ export const capturePayment = async (
 
   console.log("✅ New Payment created:", newPayment);
   console.log("✅ Order updated:", updatedOrder);
+  console.log("Updated Order details for Pathao:", updatedOrder);
 
   // 4️⃣ Pathao order create চেষ্টা করবে (Order থাকলেই)
   if (updatedOrder) {
     try {
-      const cityListResponse = await getCityListService();
-      const cityList: City[] = cityListResponse.data.data;
-      console.log("City List from server:", cityList);
-
-      const recipientCityId = cityList.find(
-        (city: City) =>
-          city.city_name.trim().toLowerCase() === updatedOrder.shippingCity.trim().toLowerCase()
-      )?.city_id;
-
-      if (!recipientCityId) {
-        throw new Error(`City not found for ${updatedOrder.shippingCity}`);
-      }
-
-      const zoneListObject = await getZoneListService(recipientCityId);
-      const zoneList: Zone[] = zoneListObject.data.data;
-      const recipientZoneId = zoneList.find(
-        (zone: Zone) =>
-          zone.zone_name.trim().toLowerCase() === updatedOrder.shippingZone!.trim().toLowerCase()
-      )?.zone_id;
-
-      if (!recipientZoneId) {
-        throw new Error(`Zone not found for ${updatedOrder.shippingZone}`);
+      // ❌ City name দিয়ে খোঁজা বাদ — সরাসরি ID ব্যবহার
+      if (!updatedOrder.pathaoRecipientCityId || !updatedOrder.pathaoRecipientZoneId) {
+        throw new Error("Missing Pathao City/Zone ID on order");
       }
 
       const pathaoPayload: ICreateOrderPayload = {
@@ -167,8 +152,8 @@ export const capturePayment = async (
         recipient_name: updatedOrder.shippingName,
         recipient_phone: updatedOrder.shippingPhone,
         recipient_address: updatedOrder.shippingStreet,
-        recipient_city: recipientCityId,
-        recipient_zone: recipientZoneId,
+        recipient_city: updatedOrder.pathaoRecipientCityId,
+        recipient_zone: updatedOrder.pathaoRecipientZoneId,
         delivery_type: 48,
         item_type: 2,
         item_quantity: 1,
@@ -179,7 +164,7 @@ export const capturePayment = async (
       };
 
       const pathaoOrder = await createOrderService(pathaoPayload);
-      console.log("✅ Pathao order created successfully:", pathaoOrder);
+      console.log("✅ Pathao order created successfully:", pathaoOrder );
     } catch (pathaoError: any) {
       console.error("❌ Failed to create Pathao order:", pathaoError.message);
     }
@@ -187,6 +172,7 @@ export const capturePayment = async (
 
   return updatedOrder || newPayment;
 };
+
 
 
 
