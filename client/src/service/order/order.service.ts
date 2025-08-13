@@ -18,5 +18,7 @@ export const createDraftOrderService = async (
   });
   const data = await res.json();
   console.log('orderId', data)
+  
   return data;
+
 };
