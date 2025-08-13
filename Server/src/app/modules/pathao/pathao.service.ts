@@ -8,17 +8,17 @@ export const getStoreInfoService = async () => {
   return await fetchWithAuth(url);
 };
 
-export const getCityListService = async (): Promise<{ data: City[] }> => {
+export const getCityListService = async (): Promise<{ data: { data: City[] } }> => {
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/city-list`;
   return await fetchWithAuth(url);
 };
 
-export const getZoneListService = async (city_id: number) => {
+export const getZoneListService = async (city_id: number): Promise<{ data: { data: Zone[] } }> => {
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/cities/${city_id}/zone-list`;
   return await fetchWithAuth(url);
 };
 
-export const getAreaListService = async (zone_id: number) => {
+export const getAreaListService = async (zone_id: number): Promise<{ data: { data: any[] } }> => {
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/zones/${zone_id}/area-list`;
 
   return await fetchWithAuth(url);

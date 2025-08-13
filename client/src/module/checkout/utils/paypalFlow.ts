@@ -19,7 +19,7 @@ type Mode = "create" | "capture";
 interface PaypalFlowProps {
   mode: Mode;
   orderBody?: CreateOrderBody; // Only required in "create"
-  orderId?: string; // Only required in "capture"
+  orderId: string; // Now required for both modes
   email: string;
   cart: CartItem[];
   userId: string;
@@ -38,7 +38,8 @@ export const handlePaypalPayment = async ({
   if (mode === "create") {
     // ✅ Step 1: Create PayPal Order
     if (!orderBody) throw new Error("Missing order body for creation");
-    const order = await createPaypalOrder(orderBody);
+    if (!orderId) throw new Error("Missing orderId for creation"); // Add this check
+    const order = await createPaypalOrder(orderBody, orderId); // Pass orderId here
     console.log("🧾 PayPal Order Response:", order);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 

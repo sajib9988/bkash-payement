@@ -8,7 +8,7 @@ const getBaseUrl = () => {
 };
 
 // ✅ Create Order
-export const createPaypalOrder = async (payload: CreateOrderBody) => {
+export const createPaypalOrder = async (payload: CreateOrderBody, orderId: string) => {
   const token = (await cookies()).get("accessToken")?.value;
 
   const response = await fetch(`${getBaseUrl()}/paypal/order`, {
@@ -17,7 +17,7 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
       'Content-Type': 'application/json',
       Authorization: `${token}`, 
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, orderId }),
   });
  console.log("createPaypalOrder response", response);
   if (!response.ok) {
@@ -25,7 +25,6 @@ export const createPaypalOrder = async (payload: CreateOrderBody) => {
   }
 
  const result = await response.json(); 
-  console.log("createPaypalOrder result", result);
   return result.data; // Assuming the response has a 'data' field with the order details
 };
 
@@ -48,7 +47,6 @@ export const capturePayment = async (orderId:string, userId: string,  shippingPh
   }
 
    const result = await response.json(); 
-  console.log("capture result", result);
   return result.data; ;
 };
 
@@ -69,7 +67,6 @@ export const trackPaypalOrder = async (orderId: string) => {
   }
 
    const result = await response.json(); 
-  console.log("track", result);
   return result.data; ;
 };
 
@@ -91,7 +88,6 @@ export const createPaypalInvoice = async (payload: CreateInvoicePayload) => {
   }
 
   const result = await response.json(); 
-  console.log("in", result);
   return result.data; ;
 };
 
@@ -104,7 +100,7 @@ export const sendPaypalInvoice = async (invoiceId: string) => {
       'Content-Type': 'application/json',
       Authorization: ` ${token}`,
     },
-    // body: JSON.stringify({ invoiceId }), // Assuming server expects this
+    body: JSON.stringify({ invoiceId }), // Assuming server expects this
   });
 
   if (!response.ok) {
@@ -112,6 +108,5 @@ export const sendPaypalInvoice = async (invoiceId: string) => {
   }
 
    const result = await response.json(); 
-  console.log("senfd invoive", result);
   return result.data; ;
 };

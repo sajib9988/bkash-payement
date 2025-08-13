@@ -17,6 +17,7 @@ enum PaymentStatus {
   PAID
   FAILED
   COMPLETED
+  DRAFT
 }
 
 model User {
@@ -58,32 +59,39 @@ model Product {
 }
 
 model Order {
-  id              String        @id @default(uuid())
-  userId          String
-  totalAmount     Float
-  status          PaymentStatus @default(PENDING)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  shippingName    String
-  shippingPhone   String
-  shippingStreet  String
-  shippingCity    String
-  shippingZone    String?       // New field for shipping zone
-  shippingZip     String
-  shippingCountry String
-  paymentGateway  String?       // New field for payment gateway
-  paypalOrderId   String?       @unique // New field for PayPal order ID
-  payerId         String?       // New field for PayPal payer ID
-  payerEmail      String?       // New field for PayPal payer email
-  payerCountryCode String?    // New field for PayPal payer country code
+  id                    String        @id @default(uuid())
+  userId                String
+  totalAmount           Float
+  status                PaymentStatus @default(PENDING)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
 
+  shippingName          String
+  shippingPhone         String
+  shippingStreet        String
+  shippingCity          String        // শুধু নাম না, পরবর্তীতে ম্যাপিংয়ের জন্য
+  shippingZone          String?
+  shippingZip           String?
+  shippingCountry       String        @default("Bangladesh")
+
+  
+  pathaoRecipientCityId Int?          // যেমন: 1 (ঢাকা)
+  pathaoRecipientZoneId Int?          // যেমন: 5 (উত্তরা)
+
+  // PayPal 
+  paymentGateway        String?       // "paypal"
+  paypalOrderId         String?       @unique
+  payerId               String?
+  payerEmail            String?
+  payerCountryCode      String?
+
+  // Relations
   user       User        @relation(fields: [userId], references: [id])
   payment    Payment?    @relation(fields: [paymentId], references: [id])
   orderItems OrderItem[]
   paymentId  String?
 }
-
 model OrderItem {
   id        String @id @default(uuid())
   orderId   String

@@ -17,6 +17,7 @@ import { handlePaypalPayment } from "./utils/paypalFlow";
 import { ICreateOrderPayload } from "@/type/type";
 import { createOrderService } from "@/service/pathao/service";
 import { createPathaoOrder } from "./utils/pathaoOrder";
+import { createDraftOrderService } from "@/service/order/order.service";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -69,10 +70,32 @@ const Checkout = () => {
         toast.error("User not logged in.");
         return;
       }
-localStorage.setItem("userId", user.userId)
-localStorage.setItem("shippingPhone", data.phone);
-      const { orderId, approvalUrl, step } = await handlePaypalPayment({
+
+      const draftOrderPayload = {
+        shippingInfo: {
+          name: data.name,
+          phone: data.phone,
+          address: data.address,
+          district: selectedDistrict.name,
+          zone: selectedZone.name,
+          zip: data.zip,
+        },
+        cartInfo: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+        })),
+        totalAmount: total,
+        userId: user.userId,
+      };
+
+      const draftOrder = await createDraftOrderService(draftOrderPayload);
+      const orderId = draftOrder.orderId;
+
+      
+      const { approvalUrl, step } = await handlePaypalPayment({
         mode: "create",
+        orderId: orderId,
         orderBody: {
           intent: "CAPTURE",
           purchase_units: [
@@ -145,9 +168,7 @@ if (selectedDistrict && selectedZone) {
                 const resss = await createPathaoOrder(orderPayload);
                 console.log("Pathao order created successfully:", resss);
 
-                localStorage.removeItem("shippingPhone");
-                localStorage.removeItem("shippingAddress");
-                localStorage.removeItem("userId");
+             
                 toast.success("Pathao order created successfully!");
                 clearCart();
                 router.push("/checkout/success");

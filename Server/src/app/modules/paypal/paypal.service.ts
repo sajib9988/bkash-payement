@@ -2,7 +2,7 @@ import { prisma } from "../../middleware/prisma";
 import { CreateOrderBody } from "./paypal.interface";
 import { createOrderService, getCityListService, getZoneListService } from "../pathao/pathao.service";
 import { ICreateOrderPayload } from "../pathao/pathao.interface";
-import { Zone } from "../pathao/pathao.type";
+import { City, Zone } from "../pathao/pathao.type";
 import { getAccessToken } from "./utils/PaypalAccessToken";
 
 export const createOrder = async (payload: CreateOrderBody) => {
@@ -125,29 +125,34 @@ export const capturePayment = async (
     data: { paymentId: newPayment.id },
   });
 
-  // Attempt to create Pathao order after successful PayPal capture and order creation
   try {
-    // IMPORTANT: recipient_city and recipient_zone need to be numerical IDs for Pathao.
-    // The 'shippingZone' property is currently missing from your Order model.
-    // You MUST add 'shippingZone' to your Prisma Order model and populate it during order creation.
-    // Then, you will need to implement a mechanism to map the string values from updatedOrder
-    // (e.g., updatedOrder.shippingCity, updatedOrder.shippingZone) to their corresponding
-    // numerical IDs from Pathao's city and zone lists.
-    // For example:
+
     const cityListResponse = await getCityListService();
-    const cityList = cityListResponse.data;
-    const recipientCityId = cityList.find((city) => city.city_name === updatedOrder.shippingCity)?.city_id;
 
-    if (recipientCityId === undefined) {
-      throw new Error(`City not found for ${updatedOrder.shippingCity}`);
-    }
+const cityList: City[] = cityListResponse.data.data;
+console.log("City List from server:", cityList);
 
-    const zoneList = await getZoneListService(recipientCityId);
-    const recipientZoneId = zoneList.find((zone: Zone) => zone.zone_name === updatedOrder.shippingZone)?.zone_id;
+const recipientCityId = cityList.find(
+  (city: City) =>
+    city.city_name.trim().toLowerCase() === updatedOrder.shippingCity.trim().toLowerCase()
+)?.city_id;
 
-    if (recipientZoneId === undefined) {
-      throw new Error(`Zone not found for ${updatedOrder.shippingZone}`);
-    }
+if (!recipientCityId) {
+  throw new Error(`City not found for ${updatedOrder.shippingCity}`);
+}
+
+// zoneList কে Zone[] টাইপ হিসেবে ডিফাইন করা
+const zoneListObject = await getZoneListService(recipientCityId);
+const zoneList: Zone[] = zoneListObject.data.data;
+const recipientZoneId = zoneList.find(
+  (zone: Zone) =>
+    zone.zone_name.trim().toLowerCase() === updatedOrder.shippingZone!.trim().toLowerCase()
+)?.zone_id;
+
+
+if (!recipientZoneId) {
+  throw new Error(`Zone not found for  ${updatedOrder.shippingZone}`);
+}
 
     const pathaoPayload: ICreateOrderPayload = {
       store_id: 148058, // Assuming a fixed store ID for now, or retrieve dynamically
@@ -155,8 +160,8 @@ export const capturePayment = async (
       recipient_name: updatedOrder.shippingName,
       recipient_phone: updatedOrder.shippingPhone,
       recipient_address: updatedOrder.shippingStreet,
-      recipient_city: updatedOrder.shippingCity as any, // Placeholder: Needs to be mapped to number ID
-      recipient_zone: 0, // TEMPORARY PLACEHOLDER: This MUST be replaced with the actual numerical zone ID.
+      recipient_city: recipientCityId, // Placeholder: Needs to be mapped to number ID
+      recipient_zone: recipientZoneId, // TEMPORARY PLACEHOLDER: This MUST be replaced with the actual numerical zone ID.
                          // See comments above regarding adding 'shippingZone' to your Order model.
       delivery_type: 48, // Assuming 'Normal Delivery' for now
       item_type: 2, // Assuming 'Parcel' for now

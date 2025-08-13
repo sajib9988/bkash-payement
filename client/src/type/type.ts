@@ -7,7 +7,7 @@ export interface ICart {
     quantity: number;
 }
 
-export interface ICreateOrderPayload {
+export interface IPathaoCreateOrderPayload {
     recipient_name: string;
     recipient_phone: string;
     recipient_city: number;
@@ -24,6 +24,28 @@ export interface ICreateOrderPayload {
     merchant_order_id: string;
     userId: string;
     paymentId: string;
+}
+
+export interface ICreateOrderPayload {
+  shippingInfo: {
+    name: string;
+    phone: string;
+    address: string;
+    district: string;
+    zone: string;
+    zip?: string;
+  };
+  cartInfo: {
+    productId: string;
+    quantity: number;
+    price: number;
+  }[];
+  totalAmount: number;
+  userId: string;
+}
+
+export interface ICreateOrderResponse {
+  orderId: string;
 }
 
 export interface IEstimatePayload {

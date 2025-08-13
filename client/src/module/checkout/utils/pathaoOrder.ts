@@ -1,4 +1,4 @@
-import { ICreateOrderPayload, ICart } from "@/type/type"; 
+import { IPathaoCreateOrderPayload, ICart } from "@/type/type"; 
 import { createOrderService } from "@/service/pathao/service";
 import { calculateWeight, calculateTotalQuantity, getItemDescription } from "./calculateShipping";
 
@@ -29,7 +29,7 @@ export const createPathaoOrder = async ({
   paymentId,
   paymentMethod,
 }: IPathaoOrderProps) => {
-  const payload: ICreateOrderPayload = {
+  const payload: IPathaoCreateOrderPayload = {
     recipient_name: data.name,
     recipient_phone: data.phone,
     recipient_city: selectedDistrict.id,
@@ -50,5 +50,5 @@ export const createPathaoOrder = async ({
 
   const order = await createOrderService(payload);
   if (!order?.success) throw new Error("Pathao order failed");
-  return order;
+  return order.data.consignment_id;
 };

@@ -1,6 +1,6 @@
 'use server';
 
-import { ICreateOrderPayload, IEstimatePayload } from '@/type/type';
+import { IPathaoCreateOrderPayload, IEstimatePayload } from '@/type/type';
 import { cookies } from 'next/headers';
 import { fetchWrapper } from './fetchWrapper';
 
@@ -33,7 +33,7 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
 };
 
 // 2. Create Order
-export const createOrderService = async (payload: ICreateOrderPayload) => {
+export const createOrderService = async (payload: IPathaoCreateOrderPayload) => {
   const token = await getAccessToken();
   const url = `${getBaseUrl()}/pathao/orders`;
 
