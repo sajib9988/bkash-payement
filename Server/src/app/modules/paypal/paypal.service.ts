@@ -55,6 +55,7 @@ export const capturePayment = async (
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
+        body: JSON.stringify({}),
       },
     }
   );
