@@ -33,8 +33,7 @@ export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
 export const capturePayment = async (
   paypalOrderId: string,
   dbOrderId: string,
-  userId: string,
-  shippingPhone: string
+  
 ) => {
   const token = (await cookies()).get("accessToken")?.value;
 
@@ -44,7 +43,7 @@ export const capturePayment = async (
       'Content-Type': 'application/json',
       Authorization: `${token}`,
     },
-    body: JSON.stringify({ dbOrderId, userId, shippingPhone }),
+    body: JSON.stringify({ dbOrderId }),
     
   
   });

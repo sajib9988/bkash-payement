@@ -36,17 +36,17 @@ export const capturePaypalPayment = catchAsync(async (req: Request, res: Respons
 
   const { paypalOrderId } = req.params; // PayPal Order ID
   console.log("📦 PayPal Order ID from params:", paypalOrderId);
-  const { userId, shippingPhone, dbOrderId } = req.body as CapturePaymentPayload;
+  const {  dbOrderId } = req.body as CapturePaymentPayload;
   console.log("📦 Request body from capture controller:", req.body);
 
-  if (!userId || !shippingPhone || !dbOrderId) {
+  if (!dbOrderId) {
     throw new Error('User ID, Shipping Phone and DB Order ID are required');
   }
 
   try {
     // capturePayment এখন PayPal order ID দিয়ে capture করবে
     // এবং শেষে DB update করবে dbOrderId ব্যবহার করে
-    const result = await capturePayment(paypalOrderId, dbOrderId, userId, shippingPhone);
+    const result = await capturePayment(paypalOrderId, dbOrderId);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

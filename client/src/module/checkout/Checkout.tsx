@@ -80,7 +80,8 @@ const Checkout = () => {
       };
 
       const draftOrder = await createDraftOrderService(draftOrderPayload);
-      setDraftOrderId(draftOrder.orderId); // store for later use
+      setDraftOrderId(draftOrder.orderId);
+       
 
       // Start PayPal payment
       const { approvalUrl } = await handlePaypalPayment({

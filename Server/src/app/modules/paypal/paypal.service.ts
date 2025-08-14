@@ -40,11 +40,8 @@ export const createOrder = async (payload: CreateOrderBody) => {
 
 export const capturePayment = async (
   paypalOrderId: string, // PayPal order ID
-  dbOrderId: string,     // DB এর order ID
-  userId: string,
-  shippingPhone: string
+  dbOrderId: string      // DB order ID
 ) => {
-
   const accessToken = await getAccessToken();
 
   // 1️⃣ PayPal থেকে Payment Capture
@@ -55,120 +52,72 @@ export const capturePayment = async (
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-        body: JSON.stringify({}),
       },
+      body: JSON.stringify({})
     }
   );
 
   const data = await response.json();
 
   if (!response.ok) {
-    console.error("❌ PayPal API Error:", JSON.stringify(data, null, 2));
-    throw new Error(
-      `Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`
-    );
+    throw new Error(`Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`);
   }
 
-  // 2️⃣ Extract data
+  // 2️⃣ ডিবি থেকে অর্ডার বের করো
+  const order = await prisma.order.findFirst({
+    where: { id: dbOrderId, status: { in: ["PENDING"] } }
+  });
+
+  if (!order) {
+    throw new Error("⚠️ Order not found or not pending.");
+  }
+
+  // 3️⃣ PayPal response থেকে প্রয়োজনীয় ডাটা
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
-  const amount = parseFloat(
-    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0"
-  );
+  const amount = parseFloat(data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0");
 
-  if (!shippingInfo || !buyerInfo) {
-    throw new Error("Missing shipping or buyer info from PayPal response.");
-  }
-
-  // 3️⃣ Transaction: Payment create + Draft order update
+  // 4️⃣ Transaction: Payment create + Order update
   const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
-
     const payment = await tx.payment.create({
       data: {
         orderId: dbOrderId,
-        userId,
+        userId: order.userId, // DB থেকে নিলাম
         amount,
         transactionId: paymentId,
         status: "PAID",
         paymentGatewayData: data,
-        billingName: buyerInfo.name?.given_name
+        billingName: buyerInfo?.name?.given_name
           ? `${buyerInfo.name.given_name} ${buyerInfo.name.surname ?? ""}`
           : null,
         invoice: "INV-" + Date.now(),
-        billingEmail: buyerInfo.email_address ?? null,
-        billingPhone: shippingPhone ?? null,
-        billingAddress: shippingInfo.address?.address_line_1 ?? null,
+        billingEmail: buyerInfo?.email_address ?? null,
+        billingPhone: order.shippingPhone ?? null, // DB থেকে নিলাম
+        billingAddress: shippingInfo?.address?.address_line_1 ?? null,
       },
     });
-console.log("💳 PayPal capture response:", data);
 
-    let order = await tx.order.findFirst({
-      where: { id: dbOrderId, userId, status: { in: ["PENDING"] } },
+    const updated = await tx.order.update({
+      where: { id: order.id },
+      data: {
+        totalAmount: amount,
+        status: "PAID",
+        paymentGateway: "paypal",
+        paypalOrderId,
+        payerId: buyerInfo?.payer_id ?? order.payerId,
+        payerEmail: buyerInfo?.email_address ?? order.payerEmail,
+        payerCountryCode: buyerInfo?.address?.country_code ?? order.payerCountryCode ?? "N/A",
+        paymentId: payment.id,
+      },
     });
-console.log("🔍 Fetched order from DB:", order);
-    if (order) {
-      order = await tx.order.update({
-        where: { id: order.id },
-        data: {
-          totalAmount: amount,
-          status: "PAID",
-          paymentGateway: "paypal",
-          paypalOrderId: paypalOrderId,
-          payerId: buyerInfo?.payer_id ?? order.payerId,
-          payerEmail: buyerInfo?.email_address ?? order.payerEmail,
-          payerCountryCode: buyerInfo?.address?.country_code ?? order.payerCountryCode ?? "N/A",
-          paymentId: payment.id,
-        },
-      });
-    } else {
-      console.warn("⚠️ [TX] No Draft/Pending order found!");
-      order = null;
-    }
 
-    return [payment, order];
+    return [payment, updated];
   });
-
-  if (!updatedOrder) {
-    console.warn("⚠️ No order was updated, skipping Pathao order creation.");
-    return newPayment;
-  }
-
-  // 4️⃣ Pathao order create (if in Bangladesh)
-  if (updatedOrder.shippingCountry === "Bangladesh") {
-    try {
-      if (!updatedOrder.pathaoRecipientCityId || !updatedOrder.pathaoRecipientZoneId) {
-        throw new Error("Missing Pathao City/Zone ID on order");
-      }
-
-      const formattedPhone = updatedOrder.shippingPhone.replace("+880", "0");
-
-      const pathaoPayload: ICreateOrderPayload = {
-        store_id: 148058,
-        merchant_order_id: updatedOrder.id,
-        recipient_name: updatedOrder.shippingName,
-        recipient_phone: formattedPhone,
-        recipient_address: updatedOrder.shippingStreet,
-        recipient_city: updatedOrder.pathaoRecipientCityId,
-        recipient_zone: updatedOrder.pathaoRecipientZoneId,
-        delivery_type: 48,
-        item_type: 2,
-        item_quantity: 1,
-        item_weight: 0.5,
-        item_description: `Order #${updatedOrder.id} - ${updatedOrder.totalAmount} BDT`,
-        special_instruction: `PayPal Order ID: ${updatedOrder.paypalOrderId}`,
-        amount_to_collect: 0,
-      };
-
-      const pathaoOrder = await createOrderService(pathaoPayload);
-      console.log("✅ [PATHAO] Order created:", pathaoOrder);
-    } catch (pathaoError: any) {
-      console.error("❌ [PATHAO] Failed:", pathaoError.message);
-    }
-  }
 
   return updatedOrder;
 };
+
 
 
 
