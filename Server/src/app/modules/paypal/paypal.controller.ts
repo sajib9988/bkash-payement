@@ -35,6 +35,7 @@ export const capturePaypalPayment = catchAsync(async (req: Request, res: Respons
   console.log("✅ /capture route hit");
 
   const { paypalOrderId } = req.params; // PayPal Order ID
+  console.log("📦 PayPal Order ID from params:", paypalOrderId);
   const { userId, shippingPhone, dbOrderId } = req.body as CapturePaymentPayload;
   console.log("📦 Request body from capture controller:", req.body);
 

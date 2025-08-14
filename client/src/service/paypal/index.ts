@@ -28,6 +28,7 @@ export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
   return result.data; // Assuming the response has a 'data' field with the order details
 };
 
+// This will send a POST request to your local server to capture the PayPal payment and update your DB order.
 // ✅ Capture Payment
 export const capturePayment = async (
   paypalOrderId: string,
@@ -41,11 +42,13 @@ export const capturePayment = async (
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+      Authorization: `${token}`,
     },
-    body: JSON.stringify({ dbOrderId, userId, shippingPhone }), // DB orderId body তে
+    body: JSON.stringify({ dbOrderId, userId, shippingPhone }),
+    
+  
   });
-
+console.log("capturePayment response", response);
   if (!response.ok) {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }
