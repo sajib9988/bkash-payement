@@ -7,7 +7,7 @@ import { getAccessToken } from "./utils/PaypalAccessToken";
 
 export const createOrder = async (payload: CreateOrderBody) => {
   const accessToken = await getAccessToken();
-  console.log('access token from paypal', accessToken);
+  // console.log('access token from paypal', accessToken);
 
   const result = await fetch(`${process.env.PAYPAL_BASE_URL}/v2/checkout/orders`, {
     method: 'POST',
@@ -27,7 +27,7 @@ export const createOrder = async (payload: CreateOrderBody) => {
   });
 
   const data = await result.json();
-  console.log("createOrder data server", data);
+  // console.log("createOrder data server", data);
   
   if (!result.ok) {
     throw new Error(`PayPal error: ${data.message || 'Unknown error'}`);
@@ -39,15 +39,17 @@ export const createOrder = async (payload: CreateOrderBody) => {
 ;
 
 export const capturePayment = async (
-  order_id: string,
+  paypalOrderId: string, // PayPal order ID
+  dbOrderId: string,     // DB এর order ID
   userId: string,
   shippingPhone: string
 ) => {
+
   const accessToken = await getAccessToken();
 
   // 1️⃣ PayPal থেকে Payment Capture
   const response = await fetch(
-    `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${order_id}/capture`,
+    `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
     {
       method: "POST",
       headers: {
@@ -58,15 +60,15 @@ export const capturePayment = async (
   );
 
   const data = await response.json();
-  console.log("capturePayment data server", data);
 
   if (!response.ok) {
+    console.error("❌ PayPal API Error:", JSON.stringify(data, null, 2));
     throw new Error(
       `Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`
     );
   }
 
-  // 2️⃣ প্রয়োজনীয় ডাটা এক্সট্রাক্ট
+  // 2️⃣ Extract data
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
@@ -80,9 +82,10 @@ export const capturePayment = async (
 
   // 3️⃣ Transaction: Payment create + Draft order update
   const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
-    // Payment create
+
     const payment = await tx.payment.create({
       data: {
+        orderId: dbOrderId,
         userId,
         amount,
         transactionId: paymentId,
@@ -97,60 +100,53 @@ export const capturePayment = async (
         billingAddress: shippingInfo.address?.address_line_1 ?? null,
       },
     });
+console.log("💳 PayPal capture response:", data);
 
-    // Draft order খুঁজে বের করা (এবং সেখানে districtId / zoneId আগেই save থাকবে)
     let order = await tx.order.findFirst({
-      where: { userId, status: { in: ["DRAFT", "PENDING"] } },
+      where: { id: dbOrderId, userId, status: { in: ["PENDING"] } },
     });
-
+console.log("🔍 Fetched order from DB:", order);
     if (order) {
       order = await tx.order.update({
         where: { id: order.id },
         data: {
           totalAmount: amount,
-          shippingName: shippingInfo.name.full_name,
-          shippingPhone,
-          shippingStreet: shippingInfo.address.address_line_1,
-          shippingCity: shippingInfo.address.admin_area_2,
-          shippingZone: shippingInfo.address.admin_area_1,
-          shippingZip: shippingInfo.address.postal_code,
-          shippingCountry: shippingInfo.address.country_code,
-          paymentGateway: "paypal",
-          paypalOrderId: data.id,
-          payerId: buyerInfo.payer_id,
-          payerEmail: buyerInfo.email_address,
-          payerCountryCode: buyerInfo.address?.country_code ?? "N/A",
           status: "PAID",
+          paymentGateway: "paypal",
+          paypalOrderId: paypalOrderId,
+          payerId: buyerInfo?.payer_id ?? order.payerId,
+          payerEmail: buyerInfo?.email_address ?? order.payerEmail,
+          payerCountryCode: buyerInfo?.address?.country_code ?? order.payerCountryCode ?? "N/A",
           paymentId: payment.id,
-          // 🆕 নিশ্চিত করলাম এগুলো ফ্রন্টএন্ড থেকে draft order create করার সময়ই আসবে
-          pathaoRecipientCityId: order.pathaoRecipientCityId,
-          pathaoRecipientZoneId: order.pathaoRecipientZoneId,
         },
       });
     } else {
+      console.warn("⚠️ [TX] No Draft/Pending order found!");
       order = null;
     }
 
     return [payment, order];
   });
 
-  console.log("✅ New Payment created:", newPayment);
-  console.log("✅ Order updated:", updatedOrder);
-  console.log("Updated Order details for Pathao:", updatedOrder);
+  if (!updatedOrder) {
+    console.warn("⚠️ No order was updated, skipping Pathao order creation.");
+    return newPayment;
+  }
 
-  // 4️⃣ Pathao order create চেষ্টা করবে (Order থাকলেই)
-  if (updatedOrder) {
+  // 4️⃣ Pathao order create (if in Bangladesh)
+  if (updatedOrder.shippingCountry === "Bangladesh") {
     try {
-      // ❌ City name দিয়ে খোঁজা বাদ — সরাসরি ID ব্যবহার
       if (!updatedOrder.pathaoRecipientCityId || !updatedOrder.pathaoRecipientZoneId) {
         throw new Error("Missing Pathao City/Zone ID on order");
       }
+
+      const formattedPhone = updatedOrder.shippingPhone.replace("+880", "0");
 
       const pathaoPayload: ICreateOrderPayload = {
         store_id: 148058,
         merchant_order_id: updatedOrder.id,
         recipient_name: updatedOrder.shippingName,
-        recipient_phone: updatedOrder.shippingPhone,
+        recipient_phone: formattedPhone,
         recipient_address: updatedOrder.shippingStreet,
         recipient_city: updatedOrder.pathaoRecipientCityId,
         recipient_zone: updatedOrder.pathaoRecipientZoneId,
@@ -164,14 +160,18 @@ export const capturePayment = async (
       };
 
       const pathaoOrder = await createOrderService(pathaoPayload);
-      console.log("✅ Pathao order created successfully:", pathaoOrder );
+      console.log("✅ [PATHAO] Order created:", pathaoOrder);
     } catch (pathaoError: any) {
-      console.error("❌ Failed to create Pathao order:", pathaoError.message);
+      console.error("❌ [PATHAO] Failed:", pathaoError.message);
     }
   }
 
-  return updatedOrder || newPayment;
+  return updatedOrder;
 };
+
+
+
+
 
 
 

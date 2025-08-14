@@ -8,8 +8,8 @@ import { CapturePaymentPayload, CreateInvoicePayload } from './paypal.interface'
 
 export const createPaypalOrder = catchAsync(async (req: Request, res: Response) => {
   try {
-    console.log("✅ /order route hit");
-    console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
+    // console.log("✅ /order route hit");
+    // console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
 
     const result = await createOrder(req.body);
 
@@ -31,18 +31,21 @@ export const createPaypalOrder = catchAsync(async (req: Request, res: Response) 
 });
 
 
-
 export const capturePaypalPayment = catchAsync(async (req: Request, res: Response) => {
   console.log("✅ /capture route hit");
-  const { orderId } = req.params;
-  const { userId, shippingPhone } = req.body as CapturePaymentPayload;
-console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
-  if (!userId || !shippingPhone) {
-    throw new Error('User ID and Shipping Phone are required');
+
+  const { paypalOrderId } = req.params; // PayPal Order ID
+  const { userId, shippingPhone, dbOrderId } = req.body as CapturePaymentPayload;
+  console.log("📦 Request body from capture controller:", req.body);
+
+  if (!userId || !shippingPhone || !dbOrderId) {
+    throw new Error('User ID, Shipping Phone and DB Order ID are required');
   }
 
   try {
-    const result = await capturePayment(orderId, userId, shippingPhone);
+    // capturePayment এখন PayPal order ID দিয়ে capture করবে
+    // এবং শেষে DB update করবে dbOrderId ব্যবহার করে
+    const result = await capturePayment(paypalOrderId, dbOrderId, userId, shippingPhone);
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -61,6 +64,7 @@ console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
     });
   }
 });
+
 
 export const createPaypalInvoice = catchAsync(async (req: Request, res: Response) => {
   const result = await createInvoice(req.body);

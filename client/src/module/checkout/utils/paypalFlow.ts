@@ -16,56 +16,57 @@ interface CartItem {
 
 type Mode = "create" | "capture";
 
-interface PaypalFlowProps {
-  mode: Mode;
-  orderBody?: CreateOrderBody; // Only required in "create"
-  orderId: string; // Now required for both modes
+export interface PaypalFlowProps {
+  mode: "create" | "capture";
+  dbOrderId?: string; // ✅ draftOrderId = dbOrderId
+  orderBody?: any;
   email: string;
-  cart: CartItem[];
+  cart: any[];
   userId: string;
-  shippingPhone?: string; // Optional, used in "capture"
+  shippingPhone?: string;
+  paypalOrderId?: string;
 }
+
 
 export const handlePaypalPayment = async ({
   mode,
   orderBody,
-  orderId,
+  paypalOrderId,
+  dbOrderId,
   email,
   cart,
   userId,
   shippingPhone,
 }: PaypalFlowProps) => {
   if (mode === "create") {
-    // ✅ Step 1: Create PayPal Order
     if (!orderBody) throw new Error("Missing order body for creation");
 
-    const order = await createPaypalOrder(orderBody); // Pass orderId here
+    const order = await createPaypalOrder(orderBody);
     console.log("🧾 PayPal Order Response:", order);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 
-    // ✅ Step 2: Get approval URL
-
-
     const approvalLink = order?.links?.find((l: any) => l.rel === "approve");
+    if (!approvalLink?.href) throw new Error("Approval link not found");
 
-if (!approvalLink?.href) throw new Error("Approval link not found");
-console.log("createPaypalOrder approvalLink", approvalLink);
     return {
-      orderId: order.id,
+      paypalOrderId: order.id,
       approvalUrl: approvalLink.href,
       step: "approval",
     };
   }
 
   if (mode === "capture") {
-    // ✅ Step 3: Capture Payment
-    if (!orderId) throw new Error("Missing orderId for capture");
-    const payment = await capturePayment(orderId, userId, shippingPhone!);
+    if (!paypalOrderId) throw new Error("Missing PayPal orderId for capture");
+    if (!dbOrderId) throw new Error("Missing DB orderId for capture");
+
+    // ✅ Pass both PayPal orderId and DB orderId to capturePayment
+    const payment = await capturePayment(paypalOrderId, dbOrderId, userId, shippingPhone!);
+
     if (!payment?.status || payment.status !== "COMPLETED") {
       throw new Error("Payment capture failed");
     }
 
-    // ✅ Step 4: Create and Send Invoice
+    // Create and send invoice
     const invoice = await createPaypalInvoice({
       detail: {
         invoice_number: `INV-${Date.now()}`,

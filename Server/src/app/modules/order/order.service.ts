@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const createDraftOrder = async (payload: any) => {
-  console.log("Payload received in createDraftOrder:", payload);
+  // console.log("Payload received in createDraftOrder:", payload);
   const { shippingInfo, cartInfo, totalAmount, userId } = payload;
 
   const result = await prisma.order.create({

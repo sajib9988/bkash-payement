@@ -16,7 +16,7 @@ router.post('/order', createPaypalOrder);
 router.get('/order/:orderId', trackPaypalOrder);
 
 // 👉 Payment Capture
-router.post('/order/:orderId/capture', capturePaypalPayment);
+router.post('/order/:paypalOrderId/capture', capturePaypalPayment);
 
 // 👉 Invoice Create
 router.post('/invoice', createPaypalInvoice);

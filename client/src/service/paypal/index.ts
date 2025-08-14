@@ -29,25 +29,29 @@ export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
 };
 
 // ✅ Capture Payment
-export const capturePayment = async (orderId:string, userId: string,  shippingPhone:string) => {
+export const capturePayment = async (
+  paypalOrderId: string,
+  dbOrderId: string,
+  userId: string,
+  shippingPhone: string
+) => {
   const token = (await cookies()).get("accessToken")?.value;
 
-  const response = await fetch(`${getBaseUrl()}/paypal/order/${orderId}/capture`, {
+  const response = await fetch(`${getBaseUrl()}/paypal/order/${paypalOrderId}/capture`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: ` ${token}`, // ✅ FIXED
+      Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ userId, shippingPhone }), // ✅ FIXED
+    body: JSON.stringify({ dbOrderId, userId, shippingPhone }), // DB orderId body তে
   });
 
-  console.log("capturePayment response", response);
   if (!response.ok) {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }
 
-   const result = await response.json(); 
-  return result.data; ;
+  const result = await response.json();
+  return result.data;
 };
 
 

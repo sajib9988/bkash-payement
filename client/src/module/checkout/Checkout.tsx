@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -11,11 +11,8 @@ import * as z from "zod";
 import { useShipping } from "./utils/useShipping";
 import { checkoutSchema } from "./utils/CheckOutSchema";
 
-
 import { useUser } from "@/context/userContext";
 import { handlePaypalPayment } from "./utils/paypalFlow";
-import { ICreateOrderPayload } from "@/type/type";
-import { createOrderService } from "@/service/pathao/service";
 import { createPathaoOrder } from "./utils/pathaoOrder";
 import { createDraftOrderService } from "@/service/order/order.service";
 
@@ -23,23 +20,13 @@ type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
 const Checkout = () => {
   const { cart, getCartTotal, clearCart } = useCart();
-  const router = useRouter();
-   const { user } = useUser();
-  const {
-    districts,
-    zones,
-    shippingCost,
-    setZones,
-    fetchZones,
-    fetchShippingCost,
-  } = useShipping(cart);
+  const [draftOrderId, setDraftOrderId] = useState<string | null>(null);
 
-  const {
-    register,
-    handleSubmit,
-    watch,
-    formState: { errors },
-  } = useForm<CheckoutFormValues>({
+  const router = useRouter();
+  const { user } = useUser();
+  const { districts, zones, shippingCost, setZones, fetchZones, fetchShippingCost } = useShipping(cart);
+
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutSchema),
   });
 
@@ -71,44 +58,37 @@ const Checkout = () => {
         return;
       }
 
-   const draftOrderPayload = {
-  shippingInfo: {
-    name: data.name,
-    phone: data.phone,
-    address: data.address,
-    district: selectedDistrict.name,
-    zone: selectedZone.name,
-    zip: data.zip,
-    pathaoRecipientCityId: selectedDistrict.id, // ✅
-    pathaoRecipientZoneId: selectedZone.id     // ✅
-  },
-  cartInfo: cart.map(item => ({
-    productId: item.product.id,
-    quantity: item.quantity,
-    price: item.product.price,
-  })),
-  totalAmount: total,
-  userId: user.userId,
-};
-
+      // Draft order payload
+      const draftOrderPayload = {
+        shippingInfo: {
+          name: data.name,
+          phone: data.phone,
+          address: data.address,
+          district: selectedDistrict.name,
+          zone: selectedZone.name,
+          zip: data.zip,
+          pathaoRecipientCityId: selectedDistrict.id,
+          pathaoRecipientZoneId: selectedZone.id,
+        },
+        cartInfo: cart.map(item => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.product.price,
+        })),
+        totalAmount: total,
+        userId: user.userId,
+      };
 
       const draftOrder = await createDraftOrderService(draftOrderPayload);
-      const orderId = draftOrder.orderId;
+      setDraftOrderId(draftOrder.orderId); // store for later use
 
-      
-      const { approvalUrl, step } = await handlePaypalPayment({
+      // Start PayPal payment
+      const { approvalUrl } = await handlePaypalPayment({
         mode: "create",
-        orderId: orderId,
+        dbOrderId: draftOrderId || "",
         orderBody: {
           intent: "CAPTURE",
-          purchase_units: [
-            {
-              amount: {
-                currency_code: "USD",
-                value: total.toFixed(2),
-              },
-            },
-          ],
+          purchase_units: [{ amount: { currency_code: "USD", value: total.toFixed(2) } }],
         },
         email: data.email,
         cart,
@@ -131,67 +111,51 @@ const Checkout = () => {
       const paypalOrderId = params.get("token");
       const payerId = params.get("PayerID");
 
-      if (paypalOrderId && payerId && user?.userId) {
+      if (paypalOrderId && payerId && user?.userId && draftOrderId) {
         try {
           toast.loading("Completing PayPal payment...");
+
           const result = await handlePaypalPayment({
             mode: "capture",
-            orderId: paypalOrderId,
-            email: user.email, // Assuming user.email is available
-            cart, // Pass cart for invoice creation
+            paypalOrderId,
+            dbOrderId: draftOrderId,
+            email: user.email,
+            cart,
             userId: user.userId,
+            shippingPhone: watch("phone"),
           });
 
           if (result?.step === "captured") {
             toast.dismiss();
             toast.success("Payment completed successfully!");
 
- const selectedDistrict = districts.find(d => String(d.id) === watchedDistrict);
-  const selectedZone = zones.find(z => String(z.id) === watchedZone);
+            const selectedDistrict = districts.find(d => String(d.id) === watchedDistrict);
+            const selectedZone = zones.find(z => String(z.id) === watchedZone);
 
-if (selectedDistrict && selectedZone) {
-              if (selectedDistrict && selectedZone) {
+            if (selectedDistrict && selectedZone) {
               const orderPayload = {
                 data: {
                   name: watch("name"),
                   phone: watch("phone"),
                   address: watch("address"),
                 },
-                selectedDistrict: selectedDistrict,
-                selectedZone: selectedZone,
-                cart: cart,
+                selectedDistrict,
+                selectedZone,
+                cart,
                 total: getCartTotal() + shippingCost,
-                shippingCost: shippingCost,
+                shippingCost,
                 userId: user.userId,
                 paymentId: result.payment,
                 paymentMethod: "PayPal",
               };
 
-              try {
-                const resss = await createPathaoOrder(orderPayload);
-                console.log("Pathao order created successfully:", resss);
-
-             
-                toast.success("Pathao order created successfully!");
-                clearCart();
-                router.push("/checkout/success");
-              } catch (err) {
-                toast.error("Pathao order creation failed!");
-                console.error(err);
-              }
+              await createPathaoOrder(orderPayload);
+              toast.success("Pathao order created successfully!");
+              clearCart();
+              router.push("/checkout/success");
             } else {
               toast.error("District or Zone not selected");
             }
-            } else {
-              toast.error("Selected district or zone is not valid");
-            }
-
-
-
-
-
-            clearCart(); // Clear cart after successful payment
-            router.push("/checkout/success"); // Redirect to success page
           } else {
             toast.dismiss();
             toast.error("Payment capture failed. Please try again.");
@@ -201,7 +165,7 @@ if (selectedDistrict && selectedZone) {
           console.error("PayPal capture error:", err);
           toast.error(err.message || "Failed to complete PayPal payment.");
         } finally {
-          // Clean up URL parameters to prevent re-triggering on refresh
+          // Clean URL params
           const newUrl = new URL(window.location.href);
           newUrl.searchParams.delete("token");
           newUrl.searchParams.delete("PayerID");
@@ -210,10 +174,8 @@ if (selectedDistrict && selectedZone) {
       }
     };
 
-    if (user?.userId) { // Ensure user is loaded before attempting capture
-      capturePaypalOrder();
-    }
-  }, [router, cart, clearCart, user]);
+    if (user?.userId) capturePaypalOrder();
+  }, [router, cart, clearCart, user, draftOrderId]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

@@ -17,7 +17,6 @@ enum PaymentStatus {
   PAID
   FAILED
   COMPLETED
-  DRAFT
 }
 
 model User {
@@ -49,7 +48,7 @@ model Product {
   title       String
   description String?
   price       Float
-  weight     Float?   @default(0) // Optional field for product weight
+  weight      Float?   @default(0) // Optional field for product weight
   image       Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -59,32 +58,30 @@ model Product {
 }
 
 model Order {
-  id                    String        @id @default(uuid())
-  userId                String
-  totalAmount           Float
-  status                PaymentStatus @default(PENDING)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  id          String        @id @default(uuid())
+  userId      String
+  totalAmount Float
+  status      PaymentStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
+  shippingName    String
+  shippingPhone   String
+  shippingStreet  String
+  shippingCity    String // শুধু নাম না, পরবর্তীতে ম্যাপিংয়ের জন্য
+  shippingZone    String?
+  shippingZip     String?
+  shippingCountry String  @default("Bangladesh")
 
-  shippingName          String
-  shippingPhone         String
-  shippingStreet        String
-  shippingCity          String        // শুধু নাম না, পরবর্তীতে ম্যাপিংয়ের জন্য
-  shippingZone          String?
-  shippingZip           String?
-  shippingCountry       String        @default("Bangladesh")
-
-  
-  pathaoRecipientCityId Int?          // যেমন: 1 (ঢাকা)
-  pathaoRecipientZoneId Int?          // যেমন: 5 (উত্তরা)
+  pathaoRecipientCityId Int? // যেমন: 1 (ঢাকা)
+  pathaoRecipientZoneId Int? // যেমন: 5 (উত্তরা)
 
   // PayPal 
-  paymentGateway        String?       // "paypal"
-  paypalOrderId         String?       @unique
-  payerId               String?
-  payerEmail            String?
-  payerCountryCode      String?
+  paymentGateway   String? // "paypal"
+  paypalOrderId    String? @unique
+  payerId          String?
+  payerEmail       String?
+  payerCountryCode String?
 
   // Relations
   user       User        @relation(fields: [userId], references: [id])
@@ -92,6 +89,7 @@ model Order {
   orderItems OrderItem[]
   paymentId  String?
 }
+
 model OrderItem {
   id        String @id @default(uuid())
   orderId   String
@@ -106,6 +104,7 @@ model OrderItem {
 model Payment {
   id                 String        @id @default(uuid())
   userId             String
+  orderId            String?
   amount             Float
   invoice            String
   status             PaymentStatus @default(PENDING)

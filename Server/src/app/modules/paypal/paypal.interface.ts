@@ -1,6 +1,8 @@
 export interface CapturePaymentPayload {
+  dbOrderId: string;
   userId: string;
   shippingPhone: string;
+  
 }
 
 // src/types/paypal.types.ts
