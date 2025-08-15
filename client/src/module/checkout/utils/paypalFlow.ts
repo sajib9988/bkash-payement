@@ -18,7 +18,7 @@ type Mode = "create" | "capture";
 
 export interface PaypalFlowProps {
   mode: "create" | "capture";
-  dbOrderId?: string; // ✅ draftOrderId = dbOrderId
+  dbOrderId?: string;
   orderBody?: any;
   email: string;
   cart: any[];
@@ -26,7 +26,6 @@ export interface PaypalFlowProps {
   shippingPhone?: string;
   paypalOrderId?: string;
 }
-
 
 export const handlePaypalPayment = async ({
   mode,
@@ -40,9 +39,10 @@ export const handlePaypalPayment = async ({
 }: PaypalFlowProps) => {
   if (mode === "create") {
     if (!orderBody) throw new Error("Missing order body for creation");
-    if (!dbOrderId) throw new Error("Missing DB orderId for creation");
+    if (!dbOrderId) throw new Error("Missing dbOrderId for creation");
 
-    const order = await createPaypalOrder(orderBody, dbOrderId);
+    const order = await createPaypalOrder(orderBody);
+    console.log("🧾 PayPal Order Response:", order);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 
     const approvalLink = order?.links?.find((l: any) => l.rel === "approve");
@@ -58,61 +58,70 @@ export const handlePaypalPayment = async ({
   if (mode === "capture") {
     if (!paypalOrderId) throw new Error("Missing PayPal orderId for capture");
     if (!dbOrderId) throw new Error("Missing DB orderId for capture");
+    if (!shippingPhone) throw new Error("Missing shipping phone for capture");
 
-    // ✅ Pass both PayPal orderId and DB orderId to capturePayment
-    const payment = await capturePayment(paypalOrderId, dbOrderId)
+    // ✅ Actually await the capturePayment function
+    const payment = await capturePayment(paypalOrderId, dbOrderId);
 
-    if (!payment?.status || payment.status !== "COMPLETED") {
-      throw new Error("Payment capture failed");
+    if (!payment) {
+      throw new Error("Payment capture failed - no response received");
     }
 
     // Create and send invoice
-    const invoice = await createPaypalInvoice({
-      detail: {
-        invoice_number: `INV-${Date.now()}`,
-        currency_code: "USD",
-        note: "Thanks for your purchase!",
-        terms_and_conditions: "No refunds after 30 days.",
-      },
-      invoicer: {
-        name: {
-          given_name: "Seller",
-          surname: "Name",
-        },
-        email_address: "seller@example.com",
-      },
-      primary_recipients: [
-        {
-          billing_info: {
-            name: {
-              given_name: "Customer",
-              surname: "Name",
-            },
-            email_address: email,
-          },
-        },
-      ],
-      items: cart.map((item) => ({
-        name: item.product.title,
-        quantity: String(item.quantity),
-        unit_amount: {
+    try {
+      const invoice = await createPaypalInvoice({
+        detail: {
+          invoice_number: `INV-${Date.now()}`,
           currency_code: "USD",
-          value: item.product.price.toFixed(2),
+          note: "Thanks for your purchase!",
+          terms_and_conditions: "No refunds after 30 days.",
         },
-      })),
-    });
+        invoicer: {
+          name: {
+            given_name: "Seller",
+            surname: "Name",
+          },
+          email_address: "seller@example.com",
+        },
+        primary_recipients: [
+          {
+            billing_info: {
+              name: {
+                given_name: "Customer",
+                surname: "Name",
+              },
+              email_address: email,
+            },
+          },
+        ],
+        items: cart.map((item) => ({
+          name: item.product.title,
+          quantity: String(item.quantity),
+          unit_amount: {
+            currency_code: "USD",
+            value: item.product.price.toFixed(2),
+          },
+        })),
+      });
 
-    const sentInvoice = await sendPaypalInvoice(invoice.id);
-    if (!sentInvoice) {
-      throw new Error("Failed to send invoice");
+      const sentInvoice = await sendPaypalInvoice(invoice.id);
+      
+      return {
+        payment,
+        invoiceId: invoice.id,
+        sentInvoice,
+        step: "captured",
+      };
+    } catch (invoiceError) {
+      console.warn("Invoice creation/sending failed:", invoiceError);
+      // Payment was successful, just invoice failed
+      return {
+        payment,
+        invoiceId: null,
+        sentInvoice: null,
+        step: "captured",
+      };
     }
-
-    return {
-      payment,
-      invoiceId: invoice.id,
-      sentInvoice,
-      step: "captured",
-    };
   }
 
   throw new Error("Invalid PayPal flow mode");

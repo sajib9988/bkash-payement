@@ -40,12 +40,33 @@ export const createOrder = async (payload: CreateOrderBody) => {
 
 
 export const capturePayment = async (
-  paypalOrderId: string, // PayPal order ID
-  dbOrderId: string      // DB order ID
+  paypalOrderId: string,
+  dbOrderId: string      
 ) => {
   const accessToken = await getAccessToken();
 
-  // 1️⃣ PayPal থেকে Payment Capture
+  // 1️⃣ First, verify the DB order exists
+  const existingOrder = await prisma.order.findFirst({
+    where: { id: dbOrderId, status: { in: ["PENDING"] } }
+  });
+
+  if (!existingOrder) {
+    throw new Error(`⚠️ Order not found with ID: ${dbOrderId} or not pending.`);
+  }
+
+  console.log("✅ Found existing order:", existingOrder.id);
+
+  // 2️⃣ Update order with PayPal ID BEFORE capture
+  await prisma.order.update({
+    where: { id: dbOrderId },
+    data: {
+      paypalOrderId: paypalOrderId, // ✅ Set PayPal ID immediately
+    },
+  });
+
+  console.log("✅ Updated order with PayPal ID:", paypalOrderId);
+
+  // 3️⃣ Now capture payment from PayPal
   const response = await fetch(
     `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
     {
@@ -64,27 +85,18 @@ export const capturePayment = async (
     throw new Error(`Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`);
   }
 
-  // 2️⃣ ডিবি থেকে অর্ডার বের করো
-  const order = await prisma.order.findFirst({
-    where: { id: dbOrderId, status: { in: ["PENDING"] } }
-  });
-
-  if (!order) {
-    throw new Error("⚠️ Order not found or not pending.");
-  }
-
-  // 3️⃣ PayPal response থেকে প্রয়োজনীয় ডাটা
+  // 4️⃣ Extract payment details
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
   const amount = parseFloat(data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0");
 
-  // 4️⃣ Transaction: Payment create + Order update
+  // 5️⃣ Final update with payment completion
   const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
         orderId: dbOrderId,
-        userId: order.userId, // DB থেকে নিলাম
+        userId: existingOrder.userId,
         amount,
         transactionId: paymentId,
         status: "PAID",
@@ -94,21 +106,21 @@ export const capturePayment = async (
           : null,
         invoice: "INV-" + Date.now(),
         billingEmail: buyerInfo?.email_address ?? null,
-        billingPhone: order.shippingPhone ?? null, // DB থেকে নিলাম
+        billingPhone: existingOrder.shippingPhone ?? null,
         billingAddress: shippingInfo?.address?.address_line_1 ?? null,
       },
     });
 
     const updated = await tx.order.update({
-      where: { id: order.id },
+      where: { id: existingOrder.id },
       data: {
         totalAmount: amount,
         status: "PAID",
         paymentGateway: "paypal",
-        paypalOrderId,
-        payerId: buyerInfo?.payer_id ?? order.payerId,
-        payerEmail: buyerInfo?.email_address ?? order.payerEmail,
-        payerCountryCode: buyerInfo?.address?.country_code ?? order.payerCountryCode ?? "N/A",
+        paypalOrderId, // ✅ Ensure it's set again
+        payerId: buyerInfo?.payer_id ?? existingOrder.payerId,
+        payerEmail: buyerInfo?.email_address ?? existingOrder.payerEmail,
+        payerCountryCode: buyerInfo?.address?.country_code ?? existingOrder.payerCountryCode ?? "N/A",
         paymentId: payment.id,
       },
     });
@@ -116,8 +128,10 @@ export const capturePayment = async (
     return [payment, updated];
   });
 
+  console.log("✅ Payment captured and order updated successfully");
   return updatedOrder;
 };
+
 
 
 

@@ -40,15 +40,31 @@ export async function getOrderById(dbOrderId: string) {
   return result;
 }
 
-export async function getOrderByPaypalId(paypalOrderId: string) {
-  const result = await prisma.order.findUnique({
-    where: { paypalOrderId },
-    include: { orderItems: true },
+const getOrderByPaypalId = async (paypalOrderId: string) => {
+  console.log('Searching for order with PayPal ID:', paypalOrderId);
+  
+  const result = await prisma.order.findFirst({
+    where: {
+      paypalOrderId: paypalOrderId,
+    },
+    include: {
+      orderItems: {
+        include: {
+          product: true,
+        },
+      },
+      user: true,
+      payment: true,
+    },
   });
-  if (!result) throw new Error("Order not found for given PayPal ID");
-  console.log("Order found for PayPal ID:", result);
+
+  if (!result) {
+    throw new Error(`Order not found with PayPal ID: ${paypalOrderId}`);
+  }
+
+  console.log('Order found:', result);
   return result;
-}
+};
 
 export const OrderService = {
   createDraftOrder,

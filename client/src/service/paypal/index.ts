@@ -7,8 +7,8 @@ const getBaseUrl = () => {
   return process.env.NEXT_PUBLIC_BASE_API!;
 };
 
-// ✅ Create Order
-export const createPaypalOrder = async (payload: CreateOrderBody, dbOrderId: string) => {
+// ✅ Create Order - Fixed to not require dbOrderId since server handles order creation
+export const createPaypalOrder = async (payload: CreateOrderBody) => {
   const token = (await cookies()).get("accessToken")?.value;
 
   const response = await fetch(`${getBaseUrl()}/paypal/order`, {
@@ -17,8 +17,9 @@ export const createPaypalOrder = async (payload: CreateOrderBody, dbOrderId: str
       'Content-Type': 'application/json',
       Authorization: `${token}`, 
     },
-    body: JSON.stringify({ ...payload, dbOrderId }),
+    body: JSON.stringify({ ...payload }),
   });
+ console.log("createPaypalOrder response", response);
   if (!response.ok) {
     throw new Error(`Failed to create order: ${response.statusText}`);
   }
@@ -27,7 +28,6 @@ export const createPaypalOrder = async (payload: CreateOrderBody, dbOrderId: str
   return result.data; // Assuming the response has a 'data' field with the order details
 };
 
-// This will send a POST request to your local server to capture the PayPal payment and update your DB order.
 // ✅ Capture Payment
 export const capturePayment = async (
   paypalOrderId: string,
@@ -43,9 +43,8 @@ export const capturePayment = async (
       Authorization: `${token}`,
     },
     body: JSON.stringify({ dbOrderId }),
-    
-  
   });
+console.log("capturePayment response", response);
   if (!response.ok) {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }
@@ -53,7 +52,6 @@ export const capturePayment = async (
   const result = await response.json();
   return result.data;
 };
-
 
 export const trackPaypalOrder = async (orderId: string) => {
   const token = (await cookies()).get("accessToken")?.value;
@@ -73,7 +71,6 @@ export const trackPaypalOrder = async (orderId: string) => {
    const result = await response.json(); 
   return result.data; ;
 };
-
 
 export const createPaypalInvoice = async (payload: CreateInvoicePayload) => {
   const token = (await cookies()).get("accessToken")?.value;
