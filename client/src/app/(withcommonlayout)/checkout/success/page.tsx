@@ -24,6 +24,7 @@ const PaypalSuccessPage = () => {
       try {
         const order = await getOrderByPaypalId(paypalOrderId);
         const dbOrderId = order.data.id;
+        console.log("DB Order ID:", dbOrderId);
 
         const result = await capturePayment(paypalOrderId, dbOrderId);
         

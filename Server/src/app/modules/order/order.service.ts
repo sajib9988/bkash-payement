@@ -46,6 +46,7 @@ export async function getOrderByPaypalId(paypalOrderId: string) {
     include: { orderItems: true },
   });
   if (!result) throw new Error("Order not found for given PayPal ID");
+  console.log("Order found for PayPal ID:", result);
   return result;
 }
 

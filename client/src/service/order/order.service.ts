@@ -35,7 +35,6 @@ export async function getDraftOrderById(dbOrderId: string) {
 
 export async function getOrderByPaypalId(paypalOrderId: string) {
   const token = (await cookies()).get("accessToken")?.value;
-  if (!token) throw new Error("No access token found");
 
   const response = await fetch(`${getBaseUrl()}/orders/by-paypal-id/${paypalOrderId}`, {
     method: "GET",
@@ -43,5 +42,6 @@ export async function getOrderByPaypalId(paypalOrderId: string) {
   });
 
   if (!response.ok) throw new Error(`Failed to fetch order by PayPal ID`);
+  console.log("Response from getOrderByPaypalId:", response);
   return response.json();
 }
