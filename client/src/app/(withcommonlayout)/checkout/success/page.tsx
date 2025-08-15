@@ -19,7 +19,7 @@ const shippingPhone = localStorage.getItem("shippingPhone") ?? "";
 
     const confirm = async () => {
       try {
-        const result = await capturePayment(orderId, userId, shippingPhone);
+        const result = await capturePayment(paypalOrderId, dbOrderId);
         console.log("✅ Payment Done:", result);
 
         toast.success("Payment successful!");

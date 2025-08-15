@@ -60,7 +60,7 @@ export const handlePaypalPayment = async ({
     if (!dbOrderId) throw new Error("Missing DB orderId for capture");
 
     // ✅ Pass both PayPal orderId and DB orderId to capturePayment
-    const payment = await capturePayment(paypalOrderId, dbOrderId);
+    const payment = (paypalOrderId, dbOrderId);
 
     if (!payment?.status || payment.status !== "COMPLETED") {
       throw new Error("Payment capture failed");
