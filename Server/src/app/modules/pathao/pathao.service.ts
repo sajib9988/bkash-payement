@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ICreateOrderPayload, IEstimatePayload } from "./pathao.interface";
-import { City } from "./pathao.type";
+import { City ,Zone} from "./pathao.type";
 import { fetchWithAuth } from "./utils/Fetcher";
 
 export const getStoreInfoService = async () => {

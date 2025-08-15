@@ -1,3 +1,4 @@
+import { createPathaoOrder } from '@/utils/pathaoOrder';
 import { prisma } from "../../middleware/prisma";
 import { CreateOrderBody } from "./paypal.interface";
 import { getAccessToken } from "./utils/PaypalAccessToken";
@@ -36,13 +37,14 @@ export const createOrder = async (payload: CreateOrderBody) => {
 /**
  * Capture payment and update DB with PayPal ID only after success
  */
+
+
 export const capturePayment = async (
   paypalOrderId: string,
   dbOrderId: string
 ) => {
   const accessToken = await getAccessToken();
 
-  // 1️⃣ Ensure DB order exists and is pending
   const existingOrder = await prisma.order.findFirst({
     where: { id: dbOrderId, status: { in: ["PENDING"] } }
   });
@@ -51,9 +53,6 @@ export const capturePayment = async (
     throw new Error(`⚠️ Order not found with ID: ${dbOrderId} or not pending.`);
   }
 
-  console.log("✅ Found existing order:", existingOrder.id);
-
-  // 2️⃣ Capture payment from PayPal (NO PayPal ID update yet)
   const response = await fetch(
     `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
     {
@@ -66,12 +65,10 @@ export const capturePayment = async (
   );
 
   const data = await response.json();
-
   if (!response.ok) {
     throw new Error(`Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`);
   }
 
-  // 3️⃣ Extract payment details
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
@@ -79,7 +76,6 @@ export const capturePayment = async (
     data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0"
   );
 
-  // 4️⃣ Create payment record and update order with PayPal ID + payment info
   const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
@@ -105,7 +101,7 @@ export const capturePayment = async (
         totalAmount: amount,
         status: "PAID",
         paymentGateway: "paypal",
-        paypalOrderId, // ✅ Set PayPal ID only now
+        paypalOrderId,
         payerId: buyerInfo?.payer_id ?? existingOrder.payerId,
         payerEmail: buyerInfo?.email_address ?? existingOrder.payerEmail,
         payerCountryCode: buyerInfo?.address?.country_code ?? existingOrder.payerCountryCode ?? "N/A",
@@ -117,8 +113,39 @@ export const capturePayment = async (
   });
 
   console.log("✅ Payment captured and order updated successfully");
+
+  // 📦 PayPal capture শেষে Pathao Order তৈরি
+  try {
+    await createPathaoOrder({
+      data: {
+        name: existingOrder.shippingName,
+        phone: existingOrder.shippingPhone,
+        address: existingOrder.shippingAddress,
+      },
+      selectedDistrict: {
+        id: existingOrder.pathaoRecipientCityId,
+        name: existingOrder.district,
+      },
+      selectedZone: {
+        id: existingOrder.pathaoRecipientZoneId,
+        name: existingOrder.zone,
+      },
+      cart: existingOrder.cartItems,
+      total: updatedOrder.totalAmount,
+      shippingCost: existingOrder.shippingCost,
+      userId: existingOrder.userId,
+      paymentId: newPayment.id,
+      paymentMethod: "PayPal",
+    });
+
+    console.log("✅ Pathao order created successfully");
+  } catch (err) {
+    console.error("❌ Failed to create Pathao order:", err);
+  }
+
   return updatedOrder;
 };
+
 
 /**
  * Create PayPal invoice

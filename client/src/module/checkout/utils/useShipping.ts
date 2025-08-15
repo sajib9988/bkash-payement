@@ -60,6 +60,7 @@ export const useShipping = (cart: any[]) => {
     try {
       const weight = calculateWeight(cart);
       const cost = await estimateShippingService({
+        store_id:148058,
         item_type: 2,
         recipient_city: districtId,
         recipient_zone: zoneId,

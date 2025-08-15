@@ -2,8 +2,14 @@ export interface CapturePaymentPayload {
   dbOrderId: string;
   userId: string;
   shippingPhone: string;
-  
+  shippingName: string;
+  shippingStreet: string;
+  shippingDistrict: string;
+  shippingZone: string;
+  address?: string;
+  shippingZip?: string;
 }
+
 
 // src/types/paypal.types.ts
 export interface CreateOrderBody {
