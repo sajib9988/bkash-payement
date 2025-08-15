@@ -1,13 +1,12 @@
 import { prisma } from "../../middleware/prisma";
 import { CreateOrderBody } from "./paypal.interface";
-import { createOrderService, getCityListService, getZoneListService } from "../pathao/pathao.service";
-import { ICreateOrderPayload } from "../pathao/pathao.interface";
-import { City, Zone } from "../pathao/pathao.type";
 import { getAccessToken } from "./utils/PaypalAccessToken";
 
+/**
+ * Create PayPal order (no DB PayPal ID linking here)
+ */
 export const createOrder = async (payload: CreateOrderBody) => {
   const accessToken = await getAccessToken();
-  // console.log('access token from paypal', accessToken);
 
   const result = await fetch(`${process.env.PAYPAL_BASE_URL}/v2/checkout/orders`, {
     method: 'POST',
@@ -21,31 +20,29 @@ export const createOrder = async (payload: CreateOrderBody) => {
         return_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/success`,
         cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/checkout/cancel`,
         user_action: "PAY_NOW",
-      
       },
     }),
   });
 
   const data = await result.json();
-  // console.log("createOrder data server", data);
-  
+
   if (!result.ok) {
     throw new Error(`PayPal error: ${data.message || 'Unknown error'}`);
   }
 
-  return data;
+  return data; // Only return PayPal order info, no DB changes yet
 };
 
-;
-
-
+/**
+ * Capture payment and update DB with PayPal ID only after success
+ */
 export const capturePayment = async (
   paypalOrderId: string,
-  dbOrderId: string      
+  dbOrderId: string
 ) => {
   const accessToken = await getAccessToken();
 
-  // 1️⃣ First, verify the DB order exists
+  // 1️⃣ Ensure DB order exists and is pending
   const existingOrder = await prisma.order.findFirst({
     where: { id: dbOrderId, status: { in: ["PENDING"] } }
   });
@@ -56,17 +53,7 @@ export const capturePayment = async (
 
   console.log("✅ Found existing order:", existingOrder.id);
 
-  // 2️⃣ Update order with PayPal ID BEFORE capture
-  await prisma.order.update({
-    where: { id: dbOrderId },
-    data: {
-      paypalOrderId: paypalOrderId, // ✅ Set PayPal ID immediately
-    },
-  });
-
-  console.log("✅ Updated order with PayPal ID:", paypalOrderId);
-
-  // 3️⃣ Now capture payment from PayPal
+  // 2️⃣ Capture payment from PayPal (NO PayPal ID update yet)
   const response = await fetch(
     `${process.env.PAYPAL_BASE_URL}/v2/checkout/orders/${paypalOrderId}/capture`,
     {
@@ -74,8 +61,7 @@ export const capturePayment = async (
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({})
+      }
     }
   );
 
@@ -85,13 +71,15 @@ export const capturePayment = async (
     throw new Error(`Payment capture failed: Status ${response.status}, Details: ${JSON.stringify(data)}`);
   }
 
-  // 4️⃣ Extract payment details
+  // 3️⃣ Extract payment details
   const paymentId = data?.purchase_units?.[0]?.payments?.captures?.[0]?.id;
   const buyerInfo = data.payer;
   const shippingInfo = data.purchase_units?.[0]?.shipping;
-  const amount = parseFloat(data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0");
+  const amount = parseFloat(
+    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value || "0"
+  );
 
-  // 5️⃣ Final update with payment completion
+  // 4️⃣ Create payment record and update order with PayPal ID + payment info
   const [newPayment, updatedOrder] = await prisma.$transaction(async (tx) => {
     const payment = await tx.payment.create({
       data: {
@@ -117,7 +105,7 @@ export const capturePayment = async (
         totalAmount: amount,
         status: "PAID",
         paymentGateway: "paypal",
-        paypalOrderId, // ✅ Ensure it's set again
+        paypalOrderId, // ✅ Set PayPal ID only now
         payerId: buyerInfo?.payer_id ?? existingOrder.payerId,
         payerEmail: buyerInfo?.email_address ?? existingOrder.payerEmail,
         payerCountryCode: buyerInfo?.address?.country_code ?? existingOrder.payerCountryCode ?? "N/A",
@@ -132,15 +120,9 @@ export const capturePayment = async (
   return updatedOrder;
 };
 
-
-
-
-
-
-
-
-
-
+/**
+ * Create PayPal invoice
+ */
 export const createInvoice = async (payload: any) => {
   const accessToken = await getAccessToken();
 
@@ -162,6 +144,9 @@ export const createInvoice = async (payload: any) => {
   return data;
 };
 
+/**
+ * Track PayPal order
+ */
 export const trackOrder = async (orderId: string) => {
   const accessToken = await getAccessToken();
 
@@ -182,7 +167,9 @@ export const trackOrder = async (orderId: string) => {
   return data;
 };
 
-
+/**
+ * Send PayPal invoice
+ */
 export const sendInvoice = async (invoiceId: string) => {
   const accessToken = await getAccessToken();
 

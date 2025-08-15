@@ -41,7 +41,11 @@ export async function getOrderByPaypalId(paypalOrderId: string) {
     headers: { Authorization: `${token}` },
   });
 
-  if (!response.ok) throw new Error(`Failed to fetch order by PayPal ID`);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.message || "Failed to fetch order by PayPal ID");
+  }
   console.log("Response from getOrderByPaypalId:", response);
   return response.json();
 }
+
