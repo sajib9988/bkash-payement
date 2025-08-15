@@ -45,7 +45,39 @@ export interface ICreateOrderPayload {
 }
 
 export interface ICreateOrderResponse {
-  orderId: string;
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    id: string;
+    userId: string;
+    totalAmount: number;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    shippingName: string;
+    shippingPhone: string;
+    shippingStreet: string;
+    shippingCity: string;
+    shippingZone: string;
+    shippingZip: string;
+    shippingCountry: string;
+    pathaoRecipientCityId: number;
+    pathaoRecipientZoneId: number;
+    paymentGateway: string | null;
+    paypalOrderId: string | null;
+    payerId: string | null;
+    payerEmail: string | null;
+    payerCountryCode: string | null;
+    paymentId: string | null;
+    orderItems: Array<{
+      id: string;
+      orderId: string;
+      productId: string;
+      quantity: number;
+      price: number;
+    }>;
+  };
 }
 
 export interface IEstimatePayload {

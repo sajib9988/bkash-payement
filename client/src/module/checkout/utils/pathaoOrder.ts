@@ -2,6 +2,7 @@ import { IPathaoCreateOrderPayload, ICart } from "@/type/type";
 import { createOrderService } from "@/service/pathao/service";
 import { calculateWeight, calculateTotalQuantity, getItemDescription } from "./calculateShipping";
 
+
 interface IPathaoOrderProps {
   data: {
     name: string;
@@ -14,7 +15,7 @@ interface IPathaoOrderProps {
   total: number;
   shippingCost: number;
   userId: string;
-  paymentId: string;
+  paymentId?: string; // ✅ Optional করুন
   paymentMethod: string;
 }
 
@@ -45,7 +46,7 @@ export const createPathaoOrder = async ({
     paymentMethod: paymentMethod,
     merchant_order_id: crypto.randomUUID(), 
     userId: userId,
-    paymentId: paymentId,
+    paymentId: paymentId!,
   };
 
   const order = await createOrderService(payload);

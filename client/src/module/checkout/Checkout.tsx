@@ -79,22 +79,29 @@ const Checkout = () => {
         userId: user.userId,
       };
 
-      const draftOrder = await createDraftOrderService(draftOrderPayload);
-      setDraftOrderId(draftOrder.orderId);
-       
+   const draftOrder = await createDraftOrderService(draftOrderPayload);
+console.log("Draft order created:", draftOrder);
 
-      // Start PayPal payment
-      const { approvalUrl } = await handlePaypalPayment({
-        mode: "create",
-        dbOrderId: draftOrderId || "",
-        orderBody: {
-          intent: "CAPTURE",
-          purchase_units: [{ amount: { currency_code: "USD", value: total.toFixed(2) } }],
-        },
-        email: data.email,
-        cart,
-        userId: user.userId,
-      });
+const newOrderId = draftOrder.data?.id;
+if (!newOrderId) {
+  toast.error("Failed to create draft order");
+  return;
+}
+setDraftOrderId(newOrderId); // Optional — if you still need it later
+
+// Start PayPal payment immediately with the fresh ID
+const { approvalUrl } = await handlePaypalPayment({
+  mode: "create",
+  dbOrderId: newOrderId, // ✅ use the fresh value
+  orderBody: {
+    intent: "CAPTURE",
+    purchase_units: [{ amount: { currency_code: "USD", value: total.toFixed(2) } }],
+  },
+  email: data.email,
+  cart,
+  userId: user.userId,
+});
+
 
       if (approvalUrl) {
         window.location.href = approvalUrl;
@@ -112,14 +119,22 @@ const Checkout = () => {
       const paypalOrderId = params.get("token");
       const payerId = params.get("PayerID");
 
-      if (paypalOrderId && payerId && user?.userId && draftOrderId) {
+      if (paypalOrderId && payerId) {
         try {
           toast.loading("Completing PayPal payment...");
 
-          const result = await handlePaypalPayment({
+          // Fetch the draft order by PayPal order ID
+          const response = await fetch(`/api/orders/by-paypal-id/${paypalOrderId}`);
+          if (!response.ok) {
+            throw new Error("Could not find order details.");
+          }
+          const orderData = await response.json();
+          const dbOrderId = orderData.data.id;
+
+          const result = await handlePaypalPayment({  
             mode: "capture",
             paypalOrderId,
-            dbOrderId: draftOrderId,
+            dbOrderId: dbOrderId,
             email: user.email,
             cart,
             userId: user.userId,
@@ -176,7 +191,7 @@ const Checkout = () => {
     };
 
     if (user?.userId) capturePaypalOrder();
-  }, [router, cart, clearCart, user, draftOrderId]);
+  }, [router, cart, clearCart, user]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

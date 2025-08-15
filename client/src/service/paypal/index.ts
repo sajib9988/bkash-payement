@@ -8,7 +8,7 @@ const getBaseUrl = () => {
 };
 
 // ✅ Create Order
-export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
+export const createPaypalOrder = async (payload: CreateOrderBody, dbOrderId: string) => {
   const token = (await cookies()).get("accessToken")?.value;
 
   const response = await fetch(`${getBaseUrl()}/paypal/order`, {
@@ -17,9 +17,8 @@ export const createPaypalOrder = async (payload: CreateOrderBody, ) => {
       'Content-Type': 'application/json',
       Authorization: `${token}`, 
     },
-    body: JSON.stringify({ ...payload }),
+    body: JSON.stringify({ ...payload, dbOrderId }),
   });
- console.log("createPaypalOrder response", response);
   if (!response.ok) {
     throw new Error(`Failed to create order: ${response.statusText}`);
   }
@@ -47,7 +46,6 @@ export const capturePayment = async (
     
   
   });
-console.log("capturePayment response", response);
   if (!response.ok) {
     throw new Error(`Failed to capture payment: ${response.statusText}`);
   }

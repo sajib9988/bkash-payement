@@ -4,30 +4,36 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { capturePayment } from "@/service/paypal"; // client-side call
+import { getOrderByPaypalId } from "@/service/order/order.service";
+
 
 const PaypalSuccessPage = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
 
   useEffect(() => {
-    const orderId = searchParams.get("token");
-    const userId = localStorage.getItem("userId"); // or get from context
-const shippingPhone = localStorage.getItem("shippingPhone") ?? "";
-
-
-    if (!orderId || !userId) return;
+    const paypalOrderId = searchParams.get("token");
 
     const confirm = async () => {
+      if (!paypalOrderId) {
+        toast.error("Invalid PayPal order ID.");
+        router.push("/checkout");
+        return;
+      }
+
       try {
+        const order = await getOrderByPaypalId(paypalOrderId);
+        const dbOrderId = order.data.id;
+
         const result = await capturePayment(paypalOrderId, dbOrderId);
-        console.log("✅ Payment Done:", result);
+        
 
         toast.success("Payment successful!");
         router.push("/thank-you"); // ✅ Redirect after payment
       } catch (err: any) {
         console.error(err);
         toast.error("Payment failed. Try again.");
-      }
+      } 
     };
 
     confirm();

@@ -1,16 +1,16 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-const createDraftOrder = async (payload: any) => {
-  // console.log("Payload received in createDraftOrder:", payload);
-  const { shippingInfo, cartInfo, totalAmount, userId } = payload;
+export async function createDraftOrder(payload: any) {
+  const { shippingInfo, cartInfo, totalAmount, userId, paypalOrderId } = payload;
 
-  const result = await prisma.order.create({
+  return prisma.order.create({
     data: {
-      userId: userId,
-      totalAmount: totalAmount,
-      status: 'PENDING', // Using PENDING as DRAFT was not migrated
+      userId,
+      totalAmount,
+      status: "PENDING",
+      paypalOrderId,
       shippingName: shippingInfo.name,
       shippingPhone: shippingInfo.phone,
       shippingStreet: shippingInfo.address,
@@ -18,7 +18,7 @@ const createDraftOrder = async (payload: any) => {
       shippingZone: shippingInfo.zone,
       shippingZip: shippingInfo.zip,
       pathaoRecipientCityId: shippingInfo.pathaoRecipientCityId,
-      pathaoRecipientZoneId: shippingInfo.pathaoRecipientZoneId, 
+      pathaoRecipientZoneId: shippingInfo.pathaoRecipientZoneId,
       orderItems: {
         create: cartInfo.map((item: any) => ({
           productId: item.productId,
@@ -27,14 +27,30 @@ const createDraftOrder = async (payload: any) => {
         })),
       },
     },
-    include: {
-      orderItems: true,
-    },
+    include: { orderItems: true },
   });
-console.log('Draft order created:', result);
+}
+
+export async function getOrderById(dbOrderId: string) {
+  const result = await prisma.order.findUnique({
+    where: { id: dbOrderId },
+    include: { orderItems: true },
+  });
+  if (!result) throw new Error("Order not found");
   return result;
-};
+}
+
+export async function getOrderByPaypalId(paypalOrderId: string) {
+  const result = await prisma.order.findUnique({
+    where: { paypalOrderId },
+    include: { orderItems: true },
+  });
+  if (!result) throw new Error("Order not found for given PayPal ID");
+  return result;
+}
 
 export const OrderService = {
   createDraftOrder,
+  getOrderById,
+  getOrderByPaypalId,
 };

@@ -40,9 +40,9 @@ export const handlePaypalPayment = async ({
 }: PaypalFlowProps) => {
   if (mode === "create") {
     if (!orderBody) throw new Error("Missing order body for creation");
+    if (!dbOrderId) throw new Error("Missing DB orderId for creation");
 
-    const order = await createPaypalOrder(orderBody);
-    console.log("🧾 PayPal Order Response:", order);
+    const order = await createPaypalOrder(orderBody, dbOrderId);
     if (!order?.id) throw new Error("Failed to create PayPal order");
 
     const approvalLink = order?.links?.find((l: any) => l.rel === "approve");

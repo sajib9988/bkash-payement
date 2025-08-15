@@ -1,13 +1,13 @@
-'use server'
+"use server";
 import { ICreateOrderPayload, ICreateOrderResponse } from "@/type/type";
 import { cookies } from "next/headers";
-const getBaseUrl = () => {
-  return process.env.NEXT_PUBLIC_BASE_API!;
-};
-export const createDraftOrderService = async (
+
+const getBaseUrl = () => process.env.NEXT_PUBLIC_BASE_API!;
+
+export async function createDraftOrderService(
   payload: ICreateOrderPayload
-): Promise<ICreateOrderResponse> => {
-    const token = (await cookies()).get("accessToken")?.value;
+): Promise<ICreateOrderResponse> {
+  const token = (await cookies()).get("accessToken")?.value;
   const res = await fetch(`${getBaseUrl()}/orders/draft`, {
     method: "POST",
     headers: {
@@ -17,8 +17,31 @@ export const createDraftOrderService = async (
     body: JSON.stringify(payload),
   });
   const data = await res.json();
-  console.log('orderId', data)
-  
   return data;
+}
 
-};
+export async function getDraftOrderById(dbOrderId: string) {
+  const token = (await cookies()).get("accessToken")?.value;
+  if (!token) throw new Error("No access token found");
+
+  const response = await fetch(`${getBaseUrl()}/orders/${dbOrderId}`, {
+    method: "GET",
+    headers: { Authorization: `${token}` },
+  });
+
+  if (!response.ok) throw new Error(`Failed to fetch draft order`);
+  return response.json();
+}
+
+export async function getOrderByPaypalId(paypalOrderId: string) {
+  const token = (await cookies()).get("accessToken")?.value;
+  if (!token) throw new Error("No access token found");
+
+  const response = await fetch(`${getBaseUrl()}/orders/by-paypal-id/${paypalOrderId}`, {
+    method: "GET",
+    headers: { Authorization: `${token}` },
+  });
+
+  if (!response.ok) throw new Error(`Failed to fetch order by PayPal ID`);
+  return response.json();
+}

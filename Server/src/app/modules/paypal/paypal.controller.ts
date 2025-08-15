@@ -8,10 +8,8 @@ import { CapturePaymentPayload, CreateInvoicePayload } from './paypal.interface'
 
 export const createPaypalOrder = catchAsync(async (req: Request, res: Response) => {
   try {
-    // console.log("✅ /order route hit");
-    // console.log("📦 Payload received:\n", JSON.stringify(req.body, null, 2));
-
-    const result = await createOrder(req.body);
+    const {  ...orderBody } = req.body;
+    const result = await createOrder(orderBody);
 
     res.status(200).json({
       success: true,
@@ -19,8 +17,6 @@ export const createPaypalOrder = catchAsync(async (req: Request, res: Response) 
       data: result,
     });
   } catch (err: any) {
-    console.error("❌ Error inside createPaypalOrder:", err.message);
-    console.error(err); // Full stack trace
 
     res.status(500).json({
       success: false,
@@ -32,12 +28,8 @@ export const createPaypalOrder = catchAsync(async (req: Request, res: Response) 
 
 
 export const capturePaypalPayment = catchAsync(async (req: Request, res: Response) => {
-  console.log("✅ /capture route hit");
-
   const { paypalOrderId } = req.params; // PayPal Order ID
-  console.log("📦 PayPal Order ID from params:", paypalOrderId);
   const {  dbOrderId } = req.body as CapturePaymentPayload;
-  console.log("📦 Request body from capture controller:", req.body);
 
   if (!dbOrderId) {
     throw new Error('User ID, Shipping Phone and DB Order ID are required');
@@ -55,8 +47,6 @@ export const capturePaypalPayment = catchAsync(async (req: Request, res: Respons
       data: result,
     });
   } catch (err: any) {
-    console.error("❌ Error inside capturePaypalPayment:", err.message);
-    console.error(err); // Full stack trace
 
     res.status(500).json({
       success: false,

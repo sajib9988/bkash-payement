@@ -4,9 +4,9 @@ import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
 import { OrderService } from './order.service';
 
+
 const createDraftOrder = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderService.createDraftOrder(req.body);
-  // console.log('Draft order created CONTROLLER:', result);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -16,6 +16,32 @@ const createDraftOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const getOrderById = catchAsync(async (req: Request, res: Response) => {
+  const { dbOrderId } = req.params;
+  const result = await OrderService.getOrderById(dbOrderId);
+  console.log('Order fetched by ID:', result);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Order fetched successfully!',
+    data: result,
+  });
+});
+
 export const OrderController = {
   createDraftOrder,
+  getOrderById,
+
+  getOrderByPaypalId: catchAsync(async (req: Request, res: Response) => {
+    const { paypalOrderId } = req.params;
+    const result = await OrderService.getOrderByPaypalId(paypalOrderId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Order fetched successfully by PayPal order ID!',
+      data: result,
+    });
+  }),
 };
