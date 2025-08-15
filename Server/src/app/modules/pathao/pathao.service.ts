@@ -1,6 +1,6 @@
 import axios from "axios";
 import { ICreateOrderPayload, IEstimatePayload } from "./pathao.interface";
-import { City ,Zone} from "./pathao.type";
+import { City ,Zone, Area} from "./pathao.type";
 import { fetchWithAuth } from "./utils/Fetcher";
 
 export const getStoreInfoService = async () => {
@@ -18,7 +18,7 @@ export const getZoneListService = async (city_id: number): Promise<{ data: { dat
   return await fetchWithAuth(url);
 };
 
-export const getAreaListService = async (zone_id: number): Promise<{ data: { data: any[] } }> => {
+export const getAreaListService = async (zone_id: number): Promise<{ data: { data: Area[] } }> => {
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/zones/${zone_id}/area-list`;
 
   return await fetchWithAuth(url);

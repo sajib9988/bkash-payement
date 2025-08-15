@@ -30,7 +30,7 @@ export const createPathaoOrder = async ({
   paymentId,
   paymentMethod,
 }: IPathaoOrderProps) => {
-  const payload: IPathaoCreateOrderPayload = {
+  const payload:  IPathaoCreateOrderPayload = {
     recipient_name: data.name,
     recipient_phone: data.phone,
     recipient_city: selectedDistrict.id,

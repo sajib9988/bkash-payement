@@ -19,6 +19,7 @@ import {
   getOrderByPaypalId,
   updateOrderService,
 } from "@/service/order/order.service";
+import { IPathaoCreateOrderPayload } from "@/type/type";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -156,23 +157,25 @@ if (paypalOrderId) {
             const selectedZone = zones.find(z => String(z.id) === watchedZone);
 
             if (selectedDistrict && selectedZone) {
-              const orderPayload = {
+             await createPathaoOrder({
                 data: {
                   name: watch("name"),
                   phone: watch("phone"),
                   address: watch("address"),
                 },
-                selectedDistrict,
-                selectedZone,
-                cart,
+                selectedDistrict: {
+                  id: selectedDistrict.id,
+                },
+                selectedZone: {
+                  id: selectedZone.id,
+                },
+                cart: cart,
                 total: getCartTotal() + shippingCost,
-                shippingCost,
+                shippingCost: shippingCost,
                 userId: user.userId,
                 paymentId: result.payment,
                 paymentMethod: "PayPal",
-              };
-
-              await createPathaoOrder(orderPayload);
+              });
               toast.success("Pathao order created successfully!");
               clearCart();
               router.push("/checkout/success");

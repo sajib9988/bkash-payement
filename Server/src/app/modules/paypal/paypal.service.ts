@@ -38,8 +38,6 @@ export const createOrder = async (payload: CreateOrderBody) => {
 /**
  * Capture payment and update DB with PayPal ID only after success
  */
-
-
 export const capturePayment = async (
   paypalOrderId: string,
   dbOrderId: string
@@ -47,7 +45,8 @@ export const capturePayment = async (
   const accessToken = await getAccessToken();
 
   const existingOrder = await prisma.order.findFirst({
-    where: { id: dbOrderId, status: { in: ["PENDING"] } }
+    where: { id: dbOrderId, status: { in: ["PENDING"] } },
+    include: { orderItems: true },
   });
 
   if (!existingOrder) {
@@ -117,27 +116,26 @@ export const capturePayment = async (
 
   // 📦 PayPal capture শেষে Pathao Order তৈরি
   try {
-    await createOrderService({
-      data: {
-        name: existingOrder.shippingName,
-        phone: existingOrder.shippingPhone,
-        address: existingOrder.shippingAddress,
-      },
-      selectedDistrict: {
-        id: existingOrder.pathaoRecipientCityId,
-        name: existingOrder.district,
-      },
-      selectedZone: {
-        id: existingOrder.pathaoRecipientZoneId,
-        name: existingOrder.zone,
-      },
-      cart: existingOrder.cartItems,
-      total: updatedOrder.totalAmount,
-      shippingCost: existingOrder.shippingCost,
-      userId: existingOrder.userId,
-      paymentId: newPayment.id,
-      paymentMethod: "PayPal",
-    });
+    if (!existingOrder.pathaoRecipientCityId || !existingOrder.pathaoRecipientZoneId) {
+        throw new Error("Pathao city or zone not set for this order");
+      }
+    if (existingOrder.pathaoRecipientCityId && existingOrder.pathaoRecipientZoneId) {
+        await createOrderService({
+          store_id: 148058,
+          merchant_order_id: existingOrder.id,
+          recipient_name: existingOrder.shippingName,
+          recipient_phone: existingOrder.shippingPhone,
+          recipient_address: existingOrder.shippingStreet,
+          recipient_city: existingOrder.pathaoRecipientCityId,
+          recipient_zone: existingOrder.pathaoRecipientZoneId,
+          delivery_type: 48,
+          item_type: 2,
+          item_quantity: existingOrder.orderItems.reduce((acc, item) => acc + item.quantity, 0),
+          item_weight: 0.5,
+          item_description: "Order from my website",
+          amount_to_collect: 0,
+        });
+      }
 
     console.log("✅ Pathao order created successfully");
   } catch (err) {

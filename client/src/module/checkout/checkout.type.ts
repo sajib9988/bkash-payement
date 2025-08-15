@@ -5,5 +5,6 @@ export interface CheckoutFormValues {
   address: string;
   district: string;
   zone: string; // New field for zone
+  zip: string;
 }
 
