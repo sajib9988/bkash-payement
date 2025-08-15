@@ -20,11 +20,28 @@ export async function createDraftOrderService(
   return data;
 }
 
-export async function getDraftOrderById(dbOrderId: string) {
+export async function updateOrderService(
+  orderId: string,
+  payload: { paypalOrderId: string }
+): Promise<ICreateOrderResponse> {
+  const token = (await cookies()).get("accessToken")?.value;
+  const res = await fetch(`${getBaseUrl()}/orders/${orderId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `${token}`,
+    },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json();
+  return data;
+}
+
+export async function getDraftOrderById(orderId: string) {
   const token = (await cookies()).get("accessToken")?.value;
   if (!token) throw new Error("No access token found");
 
-  const response = await fetch(`${getBaseUrl()}/orders/${dbOrderId}`, {
+  const response = await fetch(`${getBaseUrl()}/orders/${orderId}`, {
     method: "GET",
     headers: { Authorization: `${token}` },
   });

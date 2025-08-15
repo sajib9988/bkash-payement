@@ -17,8 +17,8 @@ const createDraftOrder = catchAsync(async (req: Request, res: Response) => {
 });
 
 const getOrderById = catchAsync(async (req: Request, res: Response) => {
-  const { dbOrderId } = req.params;
-  const result = await OrderService.getOrderById(dbOrderId);
+  const { id } = req.params;
+  const result = await OrderService.getOrderById(id);
   console.log('Order fetched by ID:', result);
 
   sendResponse(res, {
@@ -29,10 +29,21 @@ const getOrderById = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const updateOrder = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await OrderService.updateOrder(id, req.body);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Order updated successfully!',
+    data: result,
+  });
+});
+
 export const OrderController = {
   createDraftOrder,
   getOrderById,
-
+  updateOrder,
   getOrderByPaypalId: catchAsync(async (req: Request, res: Response) => {
     const { paypalOrderId } = req.params;
     const result = await OrderService.getOrderByPaypalId(paypalOrderId);

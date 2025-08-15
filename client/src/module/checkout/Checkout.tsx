@@ -14,7 +14,11 @@ import { checkoutSchema } from "./utils/CheckOutSchema";
 import { useUser } from "@/context/userContext";
 import { handlePaypalPayment } from "./utils/paypalFlow";
 import { createPathaoOrder } from "./utils/pathaoOrder";
-import { createDraftOrderService } from "@/service/order/order.service";
+import {
+  createDraftOrderService,
+  getOrderByPaypalId,
+  updateOrderService,
+} from "@/service/order/order.service";
 
 type CheckoutFormValues = z.infer<typeof checkoutSchema>;
 
@@ -90,7 +94,7 @@ if (!newOrderId) {
 setDraftOrderId(newOrderId); // Optional — if you still need it later
 
 // Start PayPal payment immediately with the fresh ID
-const { approvalUrl } = await handlePaypalPayment({
+const { approvalUrl, paypalOrderId } = await handlePaypalPayment({
   mode: "create",
   dbOrderId: newOrderId, // ✅ use the fresh value
   orderBody: {
@@ -101,6 +105,10 @@ const { approvalUrl } = await handlePaypalPayment({
   cart,
   userId: user.userId,
 });
+
+if (paypalOrderId) {
+  await updateOrderService(newOrderId, { paypalOrderId });
+}
 
 
       if (approvalUrl) {
@@ -124,11 +132,10 @@ const { approvalUrl } = await handlePaypalPayment({
           toast.loading("Completing PayPal payment...");
 
           // Fetch the draft order by PayPal order ID
-          const response = await fetch(`/api/orders/by-paypal-id/${paypalOrderId}`);
-          if (!response.ok) {
+          const orderData = await getOrderByPaypalId(paypalOrderId);
+          if (!orderData) {
             throw new Error("Could not find order details.");
           }
-          const orderData = await response.json();
           const dbOrderId = orderData.data.id;
 
           const result = await handlePaypalPayment({  

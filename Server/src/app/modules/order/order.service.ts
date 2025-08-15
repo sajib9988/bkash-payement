@@ -66,8 +66,16 @@ const getOrderByPaypalId = async (paypalOrderId: string) => {
   return result;
 };
 
+const updateOrder = async (orderId: string, payload: any) => {
+  return prisma.order.update({
+    where: { id: orderId },
+    data: payload,
+  });
+};
+
 export const OrderService = {
   createDraftOrder,
   getOrderById,
   getOrderByPaypalId,
+  updateOrder,
 };
