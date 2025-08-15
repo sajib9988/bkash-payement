@@ -1,5 +1,6 @@
-import { createPathaoOrder } from '@/utils/pathaoOrder';
+
 import { prisma } from "../../middleware/prisma";
+import { createOrderService } from "../pathao/pathao.service";
 import { CreateOrderBody } from "./paypal.interface";
 import { getAccessToken } from "./utils/PaypalAccessToken";
 
@@ -116,7 +117,7 @@ export const capturePayment = async (
 
   // 📦 PayPal capture শেষে Pathao Order তৈরি
   try {
-    await createPathaoOrder({
+    await createOrderService({
       data: {
         name: existingOrder.shippingName,
         phone: existingOrder.shippingPhone,
