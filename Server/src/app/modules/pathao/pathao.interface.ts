@@ -20,7 +20,7 @@ export interface ICreateOrderPayload {
   delivery_type: number; // 48 for Normal, 12 for On Demand
   item_type: number; // 1 for Document, 2 for Parcel
   item_quantity: number;
-  item_weight: number; // Min 0.5, Max 10
+  item_weight: string; // Min 0.5, Max 10
   item_description: string;
   special_instruction?: string;
   amount_to_collect: number; // 0 for non-COD
