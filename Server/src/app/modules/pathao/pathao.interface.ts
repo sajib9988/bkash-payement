@@ -4,7 +4,7 @@ export interface IEstimatePayload {
   recipient_city: number;
   recipient_zone: number;
   delivery_type: number;
-  item_weight: number;
+  item_weight: string;
 }
 
 

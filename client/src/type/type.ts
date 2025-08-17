@@ -15,7 +15,7 @@ export interface IPathaoCreateOrderPayload {
     recipient_address: string;
     item_type: number;
     item_quantity: number;
-    item_weight: number;
+    item_weight: string;
     delivery_type: number;
     amount_to_collect: number;
     item_description: string;
@@ -86,5 +86,5 @@ export interface IEstimatePayload {
   recipient_city: number;
   recipient_zone: number;
   delivery_type: number;
-  item_weight: number;
+  item_weight: string;
 }

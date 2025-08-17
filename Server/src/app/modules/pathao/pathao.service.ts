@@ -49,15 +49,36 @@ export const estimateShippingService = async (payload: IEstimatePayload) => {
 };
 
 export const createOrderService = async (payload: ICreateOrderPayload) => {
+  // Debug: Payload দেখার জন্য
+  console.log("Pathao payload:", JSON.stringify(payload, null, 2));
+
+  // Stop/remove করা হয়েছে
+  // throw new Error("Stopping execution to inspect payload");
+
   const data = {
     ...payload,
-    store_id:148058,
+    store_id: 148058, // নিশ্চিত হয়ে নেওয়া হলো
   };
 
   const url = `${process.env.PATHAO_API_BASE}/aladdin/api/v1/orders`;
 
-  return await fetchWithAuth(url, {
-    method: "POST",
-    body: JSON.stringify(data),
-  });
+  try {
+    const response = await fetchWithAuth(url, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errData = await response.json();
+      throw new Error(`Pathao order creation failed: ${JSON.stringify(errData)}`);
+    }
+
+    const result = await response.json();
+    console.log("Pathao order created successfully:", result);
+    return result;
+  } catch (err) {
+    console.error("❌ Pathao order creation error:", err);
+    throw err; // Optional: rethrow to handle in capturePayment
+  }
 };
+
