@@ -18,7 +18,21 @@ export const fetchWithAuth = async (url: string, options: RequestInit = {}) => {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data?.message || "Request failed");
+    // ✅ Enhanced error logging
+    console.error("❌ Pathao API Error Details:", {
+      url,
+      method: options.method || 'GET',
+      status: response.status,
+      statusText: response.statusText,
+      requestHeaders: headers,
+      requestBody: options.body,
+      responseData: data,
+      timestamp: new Date().toISOString()
+    });
+    
+    // Extract specific error message
+    const errorMessage = data?.message || data?.error || `HTTP ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
   }
 
   return data;

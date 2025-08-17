@@ -131,7 +131,7 @@ export const capturePayment = async (
           delivery_type: 48,
           item_type: 2,
           item_quantity: existingOrder.orderItems.reduce((acc, item) => acc + item.quantity, 0),
-          item_weight: "0.5",
+          item_weight: 0.5,
           item_description: "Order from my website",
           amount_to_collect: 0,
         });
